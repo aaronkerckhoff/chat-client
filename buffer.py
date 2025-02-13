@@ -1,33 +1,24 @@
 import socket
 
 class Buffer:
-    def __innit__(self):
-        ...
+    def __init__(self, ip, port):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect((ip, port))
 
-    def connect(self, ip, port):
-        buffer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        buffer_socket.connect((ip, port))
-
-        return buffer_socket
-
-    def terminate(self, buffer_socket):
-        buffer_socket.close()
-
-    def send(self, buffer_socket, message):
-        buffer_socket.send(message.encode("utf-8"))
+    def send(self, message):
+        self.socket.send(message.encode("utf-8"))
 
 
 IP = '192.168.176.250'
 PORT = 12345
 
 def runBuffer():
-    buffer = Buffer()
+    buffer = Buffer(IP, PORT)
 
-    buffer_socket = buffer.connect(IP, PORT)
+    buffer.send("test\n")
 
-    buffer.send(buffer_socket, "test\n")
+    buffer.socket.close()
 
-    buffer.terminate(buffer_socket)
 
 if __name__ == '__main__':
     runBuffer()

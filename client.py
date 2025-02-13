@@ -1,26 +1,23 @@
 import socket
 
-
 class Client:
-    def __innit__(self):
-        ...
+    def __init__(self, ip, port):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect((ip, port))
 
-    def send(ip, port, message):
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((ip, port))
-
-        client_socket.send(message.encode())
-
-        client_socket.close()
+    def send(self, message):
+        self.socket.send(message.encode("utf-8"))
 
 
 IP = '192.168.176.250'
 PORT = 12345
 
-def start():
-    client = Client()
+def runClient():
+    client = Client(IP, PORT)
 
-    client.send(IP, PORT, 'test')
+    client.send('test\n')
+
+    client.socket.close()
 
 if __name__ == '__main__':
-    start()
+    runClient()
