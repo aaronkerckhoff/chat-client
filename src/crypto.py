@@ -1,4 +1,5 @@
 import os
+from cryptography.hazmat.bindings._rust.openssl.aead import AESCCM
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -23,6 +24,24 @@ def aes_encrypt(key, plaintext, associated_data=None):
         "ciphertext": ciphertext,
         "associated_data": associated_data,
     }
+
+
+def aes128_decrypt(key, encrypted_data):
+    """
+    Decrypt ciphertext using AES-128-GCM.
+    """
+    if len(key) != 16:
+        print("Key must be 16 bytes for AES-128")
+        return
+
+    nonce = encrypted_data["nonce"]
+    ciphertext = encrypted_data["ciphertext"]
+    associated_data = encrypted_data.get("associated_data", None)
+
+    aesgcm = AESCCM(key)
+    plaintext = aesgcm.decrypt(nonce, ciphertext, associated_data)
+
+    return plaintext
 
 
 def asym_encrypt(pk, message):
@@ -54,19 +73,15 @@ def get_new_asym_keys():
     public_key = private_key.public_key()
     return private_key, public_key
 
+
 def get_asym_sig(sk, message):
-    signature = sk.sign(
-        message,
-        ec.ECDSA(hashes.SHA256())
-    )
+    signature = sk.sign(message, ec.ECDSA(hashes.SHA256()))
     return signature
+
+
 def verify_asym_sig(pk, message, signature):
     try:
-        pk.verify(
-            signature,
-            message,
-            ec.ECDSA(hashes.SHA256())
-        )
+        pk.verify(signature, message, ec.ECDSA(hashes.SHA256()))
         print("The signature is valid!")
         return True
     except Exception as e:
