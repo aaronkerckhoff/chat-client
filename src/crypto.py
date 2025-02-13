@@ -115,25 +115,3 @@ def key_derivation(pk):
     key1 = derived_key_material[:key_length]
     key2 = derived_key_material[key_length:]
     return key1, key2
-
-
-def key_derivation(pk):
-    salt = os.urandom(16)
-    key_length = 256  # Length of a single key
-    kdf = Argon2id(
-        salt=salt,
-        length=2 * key_length,  # Derive twice the length of a single key
-        iterations=10,
-        lanes=4,
-        memory_cost=64 * 1024,
-    )
-    # Serialize the private key to bytes
-    pk_bytes = pk.private_bytes(
-        encoding=serialization.Encoding.DER,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
-    )
-    derived_key_material = kdf.derive(pk_bytes)
-    key1 = derived_key_material[:key_length]
-    key2 = derived_key_material[key_length:]
-    return key1, key2
