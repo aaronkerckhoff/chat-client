@@ -1,5 +1,4 @@
 import os
-from cryptography.hazmat.bindings._rust.openssl.aead import AESCCM
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -39,7 +38,7 @@ def aes128_decrypt(key, encrypted_data):
     ciphertext = encrypted_data["ciphertext"]
     associated_data = encrypted_data.get("associated_data", None)
 
-    aesgcm = AESCCM(key)
+    aesgcm = AESGCM(key)
     plaintext = aesgcm.decrypt(nonce, ciphertext, associated_data)
 
     return plaintext
@@ -115,3 +114,5 @@ def key_derivation(pk):
     key1 = derived_key_material[:key_length]
     key2 = derived_key_material[key_length:]
     return key1, key2
+sk, pk = get_new_asym_keys()
+
