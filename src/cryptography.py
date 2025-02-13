@@ -1,2 +1,2 @@
-def encrypt(massage, pubKey):
+def encrypt(pk, message):
     pass
