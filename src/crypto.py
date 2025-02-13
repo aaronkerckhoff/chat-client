@@ -75,11 +75,16 @@ def get_new_asym_keys():
 
 
 def get_asym_sig(sk, message):
-    signature = sk.sign(message, ec.ECDSA(hashes.SHA256()))
+    message = message.encode('utf-8') 
+    signature = sk.sign(
+        message,
+        ec.ECDSA(hashes.SHA256())
+    )
     return signature
 
 
 def verify_asym_sig(pk, message, signature):
+    message = message.encode('utf-8') 
     try:
         pk.verify(signature, message, ec.ECDSA(hashes.SHA256()))
         print("The signature is valid!")
@@ -87,3 +92,5 @@ def verify_asym_sig(pk, message, signature):
     except Exception as e:
         print("The signature is invalid:", e)
         return False
+
+sk, pk = get_new_asym_keys()
