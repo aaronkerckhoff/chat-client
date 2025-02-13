@@ -4,6 +4,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import os
+from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 
 
 def aes_encrypt(key, plaintext, associated_data=None):
@@ -72,3 +74,24 @@ def verify_asym_sig(pk, message, signature):
     except Exception as e:
         print("The signature is invalid:", e)
         return False
+
+def key_derivation(pk):
+    salt = os.urandom(16)
+    key_length = 32  # Length of a single key
+    kdf = Argon2id(
+        salt=salt,
+        length=2 * key_length,  # Derive twice the length of a single key
+        iterations=10,
+        lanes=4,
+        memory_cost=64 * 1024,
+    )
+    # Serialize the private key to bytes
+    pk_bytes = pk.private_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+    derived_key_material = kdf.derive(pk_bytes)
+    key1 = derived_key_material[:key_length]
+    key2 = derived_key_material[key_length:]
+    return key1, key2
