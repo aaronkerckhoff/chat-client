@@ -97,7 +97,7 @@ def verify_asym_sig(pk, message, signature):
 
 def key_derivation(pk):
     salt = os.urandom(16)
-    key_length = 256  # Length of a single key
+    key_length = len(pk)  # Length of a single key
     kdf = Argon2id(
         salt=salt,
         length=2 * key_length,  # Derive twice the length of a single key
