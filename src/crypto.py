@@ -5,7 +5,53 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from dotenv import load_dotenv, set_key
 
+# Load environment variables from .env file
+load_dotenv()
+
+def save_key_to_env(key, key_name):
+    key_bytes = key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    ).decode('utf-8')
+    set_key('.env', key_name, key_bytes)
+
+def save_public_key_to_env(key, key_name):
+    key_bytes = key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode('utf-8')
+    set_key('.env', key_name, key_bytes)
+
+def load_key_from_env(key_name):
+    key_bytes = os.getenv(key_name)
+    if key_bytes:
+        return serialization.load_pem_private_key(
+            key_bytes.encode('utf-8'),
+            password=None
+        )
+    return None
+
+def load_public_key_from_env(key_name):
+    key_bytes = os.getenv(key_name)
+    if key_bytes:
+        return serialization.load_pem_public_key(
+            key_bytes.encode('utf-8')
+        )
+    return None
+
+def get_new_asym_keys():
+    secret_key = load_key_from_env('SECRET_KEY')
+    public_key = load_public_key_from_env('PUBLIC_KEY')
+    if secret_key is None or public_key is None:
+        secret_key = ec.generate_private_key(ec.SECP256R1())
+        public_key = secret_key.public_key()
+        save_key_to_env(secret_key, 'SECRET_KEY')
+        save_public_key_to_env(public_key, 'PUBLIC_KEY')
+    return secret_key, public_key
 
 def aes_encrypt(key, plaintext, associated_data=None):
     """
@@ -25,7 +71,6 @@ def aes_encrypt(key, plaintext, associated_data=None):
         "associated_data": associated_data,
     }
 
-
 def aes128_decrypt(key, encrypted_data):
     """
     Decrypt ciphertext using AES-128-GCM.
@@ -43,7 +88,6 @@ def aes128_decrypt(key, encrypted_data):
 
     return plaintext
 
-
 def asym_encrypt(pk, message):
     encrypted_message = pk.encrypt(
         message,
@@ -54,7 +98,6 @@ def asym_encrypt(pk, message):
         ),
     )
     return encrypted_message
-
 
 def asym_decryption(sk, message):
     decrypted_message = sk.decrypt(
@@ -67,13 +110,6 @@ def asym_decryption(sk, message):
     )
     return decrypted_message
 
-
-def get_new_asym_keys():
-    private_key = ec.generate_private_key(ec.SECP256R1())
-    public_key = private_key.public_key()
-    return private_key, public_key
-
-
 def get_asym_sig(sk, message):
     message = message.encode('utf-8') 
     signature = sk.sign(
@@ -81,7 +117,6 @@ def get_asym_sig(sk, message):
         ec.ECDSA(hashes.SHA256())
     )
     return signature
-
 
 def verify_asym_sig(pk, message, signature):
     message = message.encode('utf-8') 
@@ -93,26 +128,23 @@ def verify_asym_sig(pk, message, signature):
         print("The signature is invalid:", e)
         return False
 
-
 def key_derivation(pk):
     salt = os.urandom(16)
-    key_length = len(pk)  # Length of a single key
-    kdf = Argon2id(
-        salt=salt,
+    key_length = 32  # Example key length
+    hkdf = HKDF(
+        algorithm=hashes.SHA256(),
         length=2 * key_length,  # Derive twice the length of a single key
-        iterations=10,
-        lanes=4,
-        memory_cost=64 * 1024,
+        salt=salt,
+        info=b'handshake data',
     )
-    # Serialize the private key to bytes
-    pk_bytes = pk.private_bytes(
+    pk_bytes = pk.public_bytes(
         encoding=serialization.Encoding.DER,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
-    derived_key_material = kdf.derive(pk_bytes)
+    derived_key_material = hkdf.derive(pk_bytes)
     key1 = derived_key_material[:key_length]
     key2 = derived_key_material[key_length:]
     return key1, key2
-sk, pk = get_new_asym_keys()
 
+# Generate or load keys
+sk, pk = get_new_asym_keys()
