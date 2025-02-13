@@ -125,6 +125,6 @@ def runServer(seconds :int):
 
 
 if __name__ == "__main__":
-    runServer(60)
+    runServer(60 * 5)
     #runServer(24 * 60 * 60)  # one day
 
