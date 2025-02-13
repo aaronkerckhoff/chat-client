@@ -88,27 +88,10 @@ def aes128_decrypt(key, encrypted_data):
 
     return plaintext
 
-def asym_encrypt(pk, message):
-    encrypted_message = pk.encrypt(
-        message,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
-        ),
-    )
-    return encrypted_message
 
-def asym_decryption(sk, message):
-    decrypted_message = sk.decrypt(
-        message,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
-        ),
-    )
-    return decrypted_message
+def eec_key_derivation(sk,peer_pk):
+    shared_secret = sk.exchange(ec.ECDH(), peer_pk)
+    return shared_secret
 
 def get_asym_sig(sk, message):
     message = message.encode('utf-8') 
