@@ -76,11 +76,16 @@ def get_new_asym_keys():
 
 
 def get_asym_sig(sk, message):
-    signature = sk.sign(message, ec.ECDSA(hashes.SHA256()))
+    message = message.encode('utf-8') 
+    signature = sk.sign(
+        message,
+        ec.ECDSA(hashes.SHA256())
+    )
     return signature
 
 
 def verify_asym_sig(pk, message, signature):
+    message = message.encode('utf-8') 
     try:
         pk.verify(signature, message, ec.ECDSA(hashes.SHA256()))
         print("The signature is valid!")
@@ -88,6 +93,28 @@ def verify_asym_sig(pk, message, signature):
     except Exception as e:
         print("The signature is invalid:", e)
         return False
+
+
+def key_derivation(pk):
+    salt = os.urandom(16)
+    key_length = 256  # Length of a single key
+    kdf = Argon2id(
+        salt=salt,
+        length=2 * key_length,  # Derive twice the length of a single key
+        iterations=10,
+        lanes=4,
+        memory_cost=64 * 1024,
+    )
+    # Serialize the private key to bytes
+    pk_bytes = pk.private_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+    derived_key_material = kdf.derive(pk_bytes)
+    key1 = derived_key_material[:key_length]
+    key2 = derived_key_material[key_length:]
+    return key1, key2
 
 
 def key_derivation(pk):
