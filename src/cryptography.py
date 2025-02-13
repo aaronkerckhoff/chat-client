@@ -46,9 +46,29 @@ def asym_decryption(sk, message):
             label=None,
         ),
     )
+    return decrypted_message
 
 
 def get_new_asym_keys():
     private_key = ec.generate_private_key(ec.SECP256R1())
     public_key = private_key.public_key()
     return private_key, public_key
+
+def get_asym_sig(sk, message):
+    signature = sk.sign(
+        message,
+        ec.ECDSA(hashes.SHA256())
+    )
+    return signature
+def verify_asym_sig(pk, message, signature):
+    try:
+        pk.verify(
+            signature,
+            message,
+            ec.ECDSA(hashes.SHA256())
+        )
+        print("The signature is valid!")
+        return True
+    except Exception as e:
+        print("The signature is invalid:", e)
+        return False
