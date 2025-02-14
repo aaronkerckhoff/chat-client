@@ -33,7 +33,7 @@ class ClientState:
         self.client_socket = client_socket.ClientSocket(IP, PORT)
         self.display_name = display_name
         self.msg_recieved_callback = received_callback
-        
+        self.message_queue = []
 
     
     def send_message(self, chat: public_key.PublicKey, message: str):
@@ -60,14 +60,15 @@ class ClientState:
         if not shared_secret_signature.valid_for(sender, sym_key):
             return
         self.chats[sender] = ChatState(sym_key, self.discovered_clients[sender], sender)
-        self.msg_recieved_callback("Chat was instanciated")            
+        #self.msg_recieved_callback("Chat was instanciated", sender)  
+        self.message_queue.append(("Chat was instanciated", sender))          
         print("Received shared secret")
         pass
 
     def send_shared_secret(self, receiver: public_key.PublicKey):
         random_key = crypto.generate_aes_key()
         signed_key = signature.sign_with(self.private_key, random_key)
-        encrypted_key = crypto.rsa_encrypt(self.public_key.inner, random_key)
+        encrypted_key = crypto.rsa_encrypt(receiver.inner, random_key)
         message_pckt = packet_creator.create_exchange_message(
             base64.b64encode(encrypted_key).decode("utf-8"),
             self.public_key.as_base64_string(),
@@ -91,7 +92,9 @@ class ClientState:
         return_msg = self.chats[sender].decrypt_verify_chat(encrypted_message_bytes, decrypted_hash, nonce)
         
         if return_msg:
-            self.msg_recieved_callback(return_msg)
+            #self.msg_recieved_callback(return_msg, sender)
+            self.message_queue.append((return_msg, sender))          
+
     
     def received_healing(self, sender: public_key.PublicKey, encrypted_new_key: bytes, signature: signature.Signature):
         """The client received a healing message from the sender. 

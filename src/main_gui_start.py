@@ -109,7 +109,7 @@ class WorkerThread(threading.Thread):
         running_secs = 0
         while self.running:
             self.task()
-            if running_secs % 5 == 0:
+            if running_secs % 50 == 0:
                 self.client.broadcast_self()
             running_secs += 1
             time.sleep(1)  
@@ -195,10 +195,22 @@ class ChatApp(QWidget):
         # Currently selected chat partner (for messages sent by you)
         self.current_chat = None
         
+        # INIT HT EUPDATE QUEUE FOR CHATS
+        # Create a timer that updates every 16ms (~60 FPS)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_frame)
+        self.timer.start(16)  # 16ms ≈ 60 FPS
+
         self.init_ui()
         #self.add_test_messages()  # Add some test messages to verify the functionality
         self.init_web_client() #  Set up the Web Client
         
+    def update_frame(self):
+        for sender, message in self.client_backend.message_queue:
+            self.msg_recieved(sender, message)
+        
+        self.client_backend.message_queue.clear()
+
     def init_web_client(self):
         print("Starting Web Client Connection...")
         #self.web_client = Client("192.168.176.160", 12345, on_message_received=self.msg_recieved)
@@ -399,7 +411,7 @@ class ChatApp(QWidget):
             self.display_chat(self.test_users[0])
             self.current_chat = self.test_users[0]
 
-    def msg_recieved(self, client, message):
+    def msg_recieved(self, message, sender):
         """
         Called when a new message is received.
         Creates a new label in the chat message area.
@@ -408,19 +420,18 @@ class ChatApp(QWidget):
         """
         print(message)
         #sernder = ...
-        return
+        #return
         # Modify this to adapt to the new system of JSON Format 
         # For simplicity, the message will be displayed as "Sender: Message"
-        message_label = QLabel(f"{sender}: {message}")
-        self.message_container_layout.addWidget(message_label)
-        
+        sender_name = self.client_backend.discovered_clients[sender]
+
         # (Optional) If sender is not in your contacts, you could add a new button/label.
-        if sender not in self.test_users and sender != self.username:
-            print(f"New sender detected: {sender} (not in contacts)")
-            new_contact = QPushButton(sender)
-            new_contact.clicked.connect(lambda checked, u=sender: self.on_user_selected(u))
-            self.user_list_layout.addWidget(new_contact)
-            self.test_users.append(sender)
+        if sender not in self.test_users and sender_name != self.username:
+            print(f"New sender detected: {sender_name} (not in contacts)")
+            self.add_new_chat(sender_name, None)
+
+        self.add_message_to_chat(sender, message, sender_name)
+        self.display_chat(sender)
 
     def on_user_selected(self, user: public_key.PublicKey):
         """
@@ -581,6 +592,8 @@ class ChatApp(QWidget):
         if contact_key in self.test_users:
             print("Chat with that contact already exists")
             return
+        
+        self.test_users.append(contact_key)
 
         # Remove stretch temporarily
         new_user_button = QPushButton(contact_name)

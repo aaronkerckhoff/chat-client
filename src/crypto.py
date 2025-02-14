@@ -64,7 +64,7 @@ def load_public_key():
 
 
 # RSA functions
-def rsa_encrypt(public_key, data: bytes) -> bytes:
+def rsa_encrypt(public_key: rsa.RSAPublicKey, data: bytes) -> bytes:
     """
     Encrypt data using recipient's RSA public key.
     """
@@ -79,7 +79,7 @@ def rsa_encrypt(public_key, data: bytes) -> bytes:
     return ciphertext
 
 
-def rsa_decrypt(private_key, ciphertext: bytes) -> bytes:
+def rsa_decrypt(private_key: rsa.RSAPrivateKey, ciphertext: bytes) -> bytes:
     """
     Decrypt data using RSA private key.
     """
