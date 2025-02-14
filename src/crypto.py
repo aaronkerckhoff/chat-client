@@ -8,6 +8,9 @@ from dotenv import load_dotenv, set_key
 
 
 def generate_symmetric_key_128(shared_secret, key_length=32):
+    """
+    Generates a symmetric key using an initial shared secret and a key length
+    """
     derived_key = HKDF(
         algorithm=hashes.SHA256(), length=key_length, salt=None, info=b"handshake data"
     ).derive(shared_secret)
@@ -20,6 +23,9 @@ load_dotenv()
 
 
 def save_key_to_env(key, key_name):
+    """
+    Saves the key with the key_name into the .env file
+    """
     key_bytes = key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
@@ -29,6 +35,9 @@ def save_key_to_env(key, key_name):
 
 
 def save_public_key_to_env(key, key_name):
+    """
+    Saves the public key with the key_name into the .env file
+    """
     key_bytes = key.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
@@ -37,6 +46,9 @@ def save_public_key_to_env(key, key_name):
 
 
 def load_key_from_env(key_name):
+    """
+    Loads the key with the key_name from the .env file
+    """
     key_bytes = os.getenv(key_name)
     if key_bytes:
         return serialization.load_pem_private_key(
@@ -46,13 +58,20 @@ def load_key_from_env(key_name):
 
 
 def load_public_key_from_env(key_name):
+    """
+    Loads the public key with the key_name from the .env file
+    """
     key_bytes = os.getenv(key_name)
     if key_bytes:
         return serialization.load_pem_public_key(key_bytes.encode("utf-8"))
     return None
 
 
-def get_new_asym_keys():
+def get_new_asym_keys()
+    """
+    Returns the keys from the .env file if existing,
+    else generating and returning a new sk and pk
+    """
     secret_key = load_key_from_env("SECRET_KEY")
     public_key = load_public_key_from_env("PUBLIC_KEY")
     if secret_key is None or public_key is None:
@@ -101,17 +120,26 @@ def aes128_decrypt(key, encrypted_data):
 
 
 def eec_key_derivation(sk, peer_pk):
+    """
+    Generates a new shared secret and returns it
+    """
     shared_secret = sk.exchange(ec.ECDH(), peer_pk)
     return shared_secret
 
 
 def get_asym_sig(sk, message):
+    """
+    Generates a unique signature, based on sk and message
+    """
     message = message.encode("utf-8")
     signature = sk.sign(message, ec.ECDSA(hashes.SHA256()))
     return signature
 
 
 def verify_asym_sig(pk, message, signature):
+    """
+    Verifies whether a signature is correct for a specific message and pk
+    """
     message = message.encode("utf-8")
     try:
         pk.verify(signature, message, ec.ECDSA(hashes.SHA256()))
@@ -123,6 +151,9 @@ def verify_asym_sig(pk, message, signature):
 
 
 def key_derivation(pk):
+    """
+    Creates 2 new keys from the public key
+    """
     salt = os.urandom(16)
     key_length = 32  # Example key length
     hkdf = HKDF(
