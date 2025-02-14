@@ -10,33 +10,32 @@ class Buffer:
         try:
             self.socket.send(message.encode("utf-8"))
         except Exception as e:
-            print(f"Error: {e}")
+            raise Exception(f"Error: {e}")
 
     def listen(self) -> (str | None):
         try:
             data = self.socket.recv(1024)
             if not data:
-                print("Server closed the connection.")
                 return None
-            print(f"Received from server: {data.decode('utf-8')}", end="")
             return data.decode('utf-8')
                 
-
         except Exception as e:
-            print(f"Error: {e}")
+            raise Exception(f"Error: {e}")
 
 
 IP = '192.168.176.250'
 PORT = 12345
 
+time = 60*5
+
 def runBuffer():
     buffer = Buffer(IP, PORT)
 
-    data = None
-    while data == None:
+    for i in range(time):
         data = buffer.listen()
-    
-    sleep(5)
+        print(f"Received from server: {data}", end="")
+        sleep(1)
+
     buffer.socket.close()
 
 

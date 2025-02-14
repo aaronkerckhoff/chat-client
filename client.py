@@ -9,17 +9,17 @@ class Client:
         try:
             self.socket.send(message.encode("utf-8"))
         except Exception as e:
-            print(f"Error: {e}")
+            raise Exception(f"Error: {e}")
 
     def listen(self):
         try:
             data = self.socket.recv(1024)
             if not data:
-                print("Server closed the connection.")
-            print(f"Received from server: {data.decode('utf-8')}")
+                return None
+            return data.decode('utf-8')
 
         except Exception as e:
-            print(f"Error: {e}")
+            raise Exception(f"Error: {e}")
 
 
 IP = '192.168.176.250'
@@ -30,7 +30,7 @@ def runClient():
 
     client.send('test\n')
 
-    client.listen()
+    print(client.listen())
 
     client.socket.close()
 
