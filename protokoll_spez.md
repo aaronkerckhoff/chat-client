@@ -35,8 +35,13 @@ Wir benutzen verschiedene Level von Abstraktionen von den JSON Objekten.
         - Heal - Heilungsprozess
             - new_key: *Public Key* - The new key used for the healing process
             - sig: *Signature* - Signature, signed with the public key of the other partie
+            - sender: *Public Key* - The global public key of the sender
         - Message - Sends a message, encrypted with the current rolling key
             - data: *Encrypted JSON*
+            - hash: *Hash* - ein hash der entschlüsselten nachricht, um zu überprüfen, ob der schlüssel valid ist.
+            - sender: *Public Key* - The global public key of the sender
+
+            
 
 
 
@@ -45,3 +50,4 @@ Verschieden Typen die in der JSON Datei verwendet werden
 - *Public Key* - Ein Elliptic Curve 256 Public key, der als Base64 encodierter String encodiert wird.
 - *Signature* - Eine digitale Unterschrift
 - *Encrypted JSON* - Ein JSON objekt, dass Verschlüsselt wurde und also Base64 String encodiert wird.
+- *Hash* - Ein base64 encoded sha256 hash
