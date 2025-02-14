@@ -4,8 +4,7 @@ import signature
 import public_key
 import base64
 from client_state import ClientState
-current_protocol_version = 0
-
+from protocol_ver import current_protocol_version
 class PubKey:
     def __init__(self, b64_str: str):
         pass
@@ -47,15 +46,26 @@ def execute_broadcast_message(dic: dict, client: ClientState):
         case "WANTS":
             requested = public_key.from_base64_string(dic["public_key"])
             client.other_wants(requested)
+        case "WANTSNAME":
+            requested = public_key.from_base64_string(dic["name"])
+            client.other_wants(requested)
 
 def execute_directed_message(dic: dict, client: ClientState):
     type = dic["type"]
     match type:
         case "HEAL":
+            if current_protocol_version < 1:
+                print("Client doesn't support version 1 protocol")
+                return None
             sender = public_key.from_base64_string(dic["sender"])
             new_key = base64.b64decode(dic["new_key"])
             sig = signature.from_base64_string(dic["sig"])
             client.received_healing(sender, new_key, sig)
+        case "EXCHANGE":
+            sym_key = base64.b64decode(dic["sym_key"])
+            sender = public_key.from_base64_string(dic["sender"])
+            sig = signature.from_base64_string(dic["sig"])
+            client.received_shared_secret(sender, sym_key, sig)
         case "MESSAGE":
             sender = public_key.from_base64_string(dic["sender"])
             data = base64.b64decode(dic["data"])
@@ -88,7 +98,9 @@ def parse_packet(io_stream: io.BytesIO, client: ClientState) -> None | BaseMessa
     """Parses a packet from an io_stream. This includes head and body, and then calls the client interface with the appropriate package."""
     if not valid_head(io_stream):
         return None
-    body = io_stream.read().decode(str="utf-8")
+    body = io_stream.read()#.decode(str="utf-8")
     body_object = json.loads(body)
     execute_message(body_object, client)
-    
+
+
+

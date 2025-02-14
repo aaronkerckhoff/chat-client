@@ -1,8 +1,11 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog, QScrollArea, QSizePolicy, QLayout, QLayoutItem, QSpacerItem
 from PyQt6.QtGui import QFont
-from PyQt6.QtCore import Qt, QEvent, QObject
+from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from pathlib import Path
 from web_client.client import Client
+
+from client_state import ClientState, new_client
+
 
 import sys
 import os
@@ -40,7 +43,7 @@ class LoginPopup(QDialog):
         self.file_path = save_file_path
 
         # Try Loading Roboto Font
-
+        # May not this life, because ths aint working
 
         # Create Styles 
         self.setStyleSheet("""
@@ -140,12 +143,12 @@ class ChatApp(QWidget):
         self.current_chat = None  
         
         self.init_ui()
-        self.add_test_messages()  # Add some test messages to verify the functionality
+        #self.add_test_messages()  # Add some test messages to verify the functionality
         self.init_web_client() #  Set up the Web Client
         
     def init_web_client(self):
         print("Starting Web Client Connection...")
-        self.web_client = Client("192.168.176.160", 12345)
+        self.web_client = Client("192.168.176.160", 12345, on_message_received=self.msg_recieved)
 
     def load_username(self):
         """Loads the username from the user.txt JSON file."""
@@ -156,20 +159,13 @@ class ChatApp(QWidget):
         except (json.JSONDecodeError, FileNotFoundError):
             self.username = "Username Key not Found!"
             sys.exit()
-        
+
         print("Found Username: " + self.username)
+        self.client_backend = new_client(self.username)
     
     def init_ui(self):
         """Initializes the GUI components."""
-        # -------------------- BASIC WINDOW SETTINGS --------------------
-        self.setWindowTitle("Chat")
-        self.resize(800, 600)
-
-        # -------------------- CREATE GUI ELEMENTS --------------------
-        self.label = QLabel(f"Welcome, {self.username}!", self)
-        self.label.setFont(QFont("Any", 10))
-        
-        # Create Styles
+        # -------------------- Apply Styling ----------------
         self.setStyleSheet("""
             QWidget { 
                 background-color: #2E3440;  /* Dark Gray Background */
@@ -192,86 +188,137 @@ class ChatApp(QWidget):
                 background-color: #81A1C1;
             }
         """)
-        
-        # -------------------- LAYOUT --------------------
-        layout = QVBoxLayout()
-        layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignHCenter)
-        
+
+        # -------------------- BASIC WINDOW SETTINGS --------------------
+        self.setWindowTitle("Chat")
+        self.setFixedSize(800, 600)
+
+        # -------------------- CREATE GUI ELEMENTS --------------------
+        self.label = QLabel(f"Welcome, {self.username} 👋!", self)
+        self.label.setFont(QFont("Any", 10))
+
+        # -------------------- MAIN LAYOUT --------------------
+        self.layout = QVBoxLayout()
+
+        # Add the welcome label
+        self.layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignHCenter)
+
         # -------------------- CHAT INTERFACE --------------------
-        # Create a horizontal layout to separate the left (contacts) and the middle (chat messages)
-        chat_layout = QHBoxLayout()
-        
+        chat_layout = QHBoxLayout()  # Layout for left (contacts) and middle (chat messages)
+
         # --- Left Bar: Contacts/Users ---
         self.user_list_layout = QVBoxLayout()
-        self.user_list_label = QLabel("Contacts")
-        self.user_list_label.setFont(QFont("Any", 12))
+
+        # Create "Contacts" label and add it at the top
+        self.user_list_label = QLabel("📂 Contacts")
+        self.user_list_label.setFont(QFont("Any", 12, QFont.Weight.Bold))
+        self.user_list_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.user_list_layout.addWidget(self.user_list_label)
-        # For testing purposes, add some sample contacts/users
-        # REMOVE HERE IN PROD
-        self.test_users = ["Alice", "Bob", "Charlie"]
+
+        # Scroll area for contacts
+        self.scroll_contacts = QScrollArea(self)
+        self.scroll_contacts.setWidgetResizable(True)
+        self.scroll_contacts.setFixedWidth(150)
+
+        # Container for contacts inside the scroll area
+        self.contacts_container = QWidget()
+        self.contacts_layout = QVBoxLayout()
+        self.contacts_layout.setSpacing(2)  # Minimal spacing
+        self.contacts_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+
+        # --- NEW CHAT BUTTON ---
+        self.new_chat_button = QPushButton("➕", self)  # Added an icon for better visibility
+        self.new_chat_button.clicked.connect(self.create_new_chat_popup)
+        self.new_chat_button.setFixedSize(30, 30)
+        self.new_chat_button.move(70, 475)
+        self.new_chat_button.raise_()
+        self.new_chat_button.show()
+
+        # Add test users
+        self.test_users = ["Bob", "Alice", "Martin"] # Simulating many users -> REMOVE IN PROD
         for user in self.test_users:
             user_button = QPushButton(user)
-            # When a contact is clicked, on_user_selected will be called
             user_button.clicked.connect(lambda checked, u=user: self.on_user_selected(u))
-            self.user_list_layout.addWidget(user_button)
-        # --- NEW CHAT BUTTON ---
-        self.new_chat_button = QPushButton("New Chat")
-        self.new_chat_button.clicked.connect(self.create_new_chat_popup)
-        self.user_list_layout.addWidget(self.new_chat_button)
-        
-        chat_layout.addLayout(self.user_list_layout, 1)  # Give the contacts column a smaller stretch factor
-        
+            self.contacts_layout.addWidget(user_button)
+
+        # Add a stretch at the bottom to keep spacing consistent
+        self.contacts_layout.addStretch(1)
+
+        self.contacts_container.setLayout(self.contacts_layout)
+        self.scroll_contacts.setWidget(self.contacts_container)
+
+        # Add the scrollable contacts list to the left sidebar
+        self.user_list_layout.addWidget(self.scroll_contacts)
+        chat_layout.addLayout(self.user_list_layout, 1)
+
         # --- Middle: Chat Messages ---
         self.message_area_layout = QVBoxLayout()
         self.message_area_label = QLabel("Chat Messages")
         self.message_area_label.setFont(QFont("Any", 12))
         self.message_area_layout.addWidget(self.message_area_label)
-        
-        # A container to hold all chat message labels
+
+        # Wrap messages in a scrollable area
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        # Container for messages inside the scroll area
         self.message_container = QWidget()
         self.message_container_layout = QVBoxLayout()
+        self.message_container_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+
+        # Ensure messages are always pushed up when the list is empty
+        self.message_container_layout.addStretch(1)
+
         self.message_container.setLayout(self.message_container_layout)
-        self.message_area_layout.addWidget(self.message_container)
-        self.message_area_layout.addStretch()
-        
-        chat_layout.addLayout(self.message_area_layout, 3)  # Give the chat area more stretch
-        
-        layout.addLayout(chat_layout)
-        
+        self.scroll_area.setWidget(self.message_container)
+
+        # Allow chat messages to expand as much as possible
+        self.message_area_layout.addWidget(self.scroll_area, stretch=1)
+        chat_layout.addLayout(self.message_area_layout, 3)  # Chat area gets more space
+
+        self.layout.addLayout(chat_layout, stretch=5)
+
         # -------------------- BOTTOM INPUT BAR --------------------
         self.bottom_input_layout = QHBoxLayout()
         self.bottom_message_input = QLineEdit()
         self.bottom_send_button = QPushButton("Send")
         self.bottom_upload_button = QPushButton("Upload File")
-        self.bottom_input_layout.addWidget(self.bottom_message_input)
-        self.bottom_input_layout.addWidget(self.bottom_send_button)
-        self.bottom_input_layout.addWidget(self.bottom_upload_button)
+
+        self.bottom_input_layout.addWidget(self.bottom_message_input, stretch=3)
+        self.bottom_input_layout.addWidget(self.bottom_send_button, stretch=1)
+        self.bottom_input_layout.addWidget(self.bottom_upload_button, stretch=1)
+
         # Connect signals to the new bottom bar
         self.bottom_send_button.clicked.connect(self.bottom_send_message)
         self.bottom_upload_button.clicked.connect(self.upload_file)
-        
-        # Detect Enter / Shift+Enter for newline characters sperately
+
+        # Detect Enter / Shift+Enter for newline characters separately
         self.eventFilter = EventFilter(self)
         self.bottom_message_input.installEventFilter(self.eventFilter)
 
-        # Add a stretch to push the input bar to the bottom
-        layout.addStretch()
-        layout.addLayout(self.bottom_input_layout)
-        
-        self.setLayout(layout)
-        
+        # Ensure the input bar stays at the bottom
+        self.layout.addStretch(1)  # Pushes input field down
+        self.layout.addLayout(self.bottom_input_layout)
+
+        # Set the final layout
+        self.setLayout(self.layout)
+
         # Set default current chat to the first contact (if any)
         if self.test_users:
             self.display_chat(self.test_users[0])
             self.current_chat = self.test_users[0]
 
-    def on_message_received(self, message, sender):
+    def msg_recieved(self, client, message):
         """
         Called when a new message is received.
         Creates a new label in the chat message area.
         Also checks if the sender is already in the contacts sidebar;
         if not, you could add it.
         """
+        print(message)
+        #sernder = ...
+        return
         # Modify this to adapt to the new system of JSON Format 
         # For simplicity, the message will be displayed as "Sender: Message"
         message_label = QLabel(f"{sender}: {message}")
@@ -284,7 +331,7 @@ class ChatApp(QWidget):
             new_contact.clicked.connect(lambda checked, u=sender: self.on_user_selected(u))
             self.user_list_layout.addWidget(new_contact)
             self.test_users.append(sender)
-    
+
     def on_user_selected(self, user):
         """
         Called when a user in the contacts list is clicked.
@@ -347,25 +394,47 @@ class ChatApp(QWidget):
     
     def add_message_label(self, sender, message):
         """
-        Adds a new message label to the chat display.
+        Adds a new message label to the chat display with fixed spacing.
         """
         label = QLabel(f"{sender}: {message}")
+        label.setWordWrap(True)
+
+        # Prevents messages from expanding and overriding spacing
+        label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+
+        # Set a fixed height (adjust as needed)
+        label.setFixedHeight(10)  
+
+        # Add the message to the layout
         self.message_container_layout.addWidget(label)
+
+        # Add fixed spacing between messages
+        self.message_container_layout.addSpacing(5)  # Try changing this number
+
+
+
     
     def display_chat(self, chat_user):
         """
-        Clears and displays all messages for the specified chat.
+        Clears and displays all messages for the specified chat, ensuring they appear top to bottom.
         """
-        # Clear existing messages in the display area
+        # Clear the current messages
         while self.message_container_layout.count():
-            child = self.message_container_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-        # Display stored messages for the selected chat
+            item = self.message_container_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        # Ensure messages appear top to bottom
+        self.message_container_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Add messages with fixed spacing
         for sender, message in self.chats.get(chat_user, []):
             self.add_message_label(sender, message)
 
+        # Update the chat title
         self.message_area_label.setText(f"Chat Messages - {chat_user}")
+
+
 
     
     def receive_message(self, message, sender):
@@ -429,12 +498,22 @@ class ChatApp(QWidget):
         if contact_name in self.test_users:
             print("Chat with that contact already exists")
             return
-        # Create new contact button and insert it before the New Chat button.
-        new_contact_button = QPushButton(contact_name)
-        new_contact_button.clicked.connect(lambda checked, u=contact_name: self.on_user_selected(u))
-        self.user_list_layout.insertWidget(self.user_list_layout.count() - 1, new_contact_button)
-        self.test_users.append(contact_name)
-        self.chats[contact_name] = []  # initialize an empty chat for this contact
+
+        # Remove stretch temporarily
+        new_user_button = QPushButton(contact_name)
+        new_user_button.clicked.connect(lambda checked, u=contact_name: self.on_user_selected(u))
+
+        # ✅ Remove the existing stretch before adding a new contact
+        if self.contacts_layout.count() > 0:
+            item = self.contacts_layout.itemAt(self.contacts_layout.count() - 1)
+            if item and isinstance(item, QLayoutItem):  # Check if it's the stretch
+                self.contacts_layout.removeItem(item)
+
+        # ✅ Add new contact button at the bottom (normal behavior)
+        self.contacts_layout.addWidget(new_user_button)
+
+        # ✅ Re-add the stretch at the end to keep contacts aligned properly
+        self.contacts_layout.addStretch(1)
         dialog.accept()
 
     def open_file_dialog(self):
@@ -443,10 +522,10 @@ class ChatApp(QWidget):
         if file_path:  # If a file was selected
             with open(file_path, "rb") as file:
                 file_bytes = file.read()  # Read file as bytes
-                print(f"File Bytes: {file_bytes[:50]}...")  # Print first 50 bytes as a check
+                print(f"Sending File Bytes...")  # Print first 50 bytes as a check
         
         # Return File Bytes
-        return file_bytes
+        return file_bytes.decode('utf-8')
 
 
 
