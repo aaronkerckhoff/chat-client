@@ -240,6 +240,7 @@ class ChatApp(QWidget):
         Also checks if the sender is already in the contacts sidebar;
         if not, you could add it.
         """
+        # Modify this to adapt to the new system of JSON Format 
         # For simplicity, the message will be displayed as "Sender: Message"
         message_label = QLabel(f"{sender}: {message}")
         self.message_container_layout.addWidget(message_label)
@@ -261,24 +262,13 @@ class ChatApp(QWidget):
         self.current_chat = user
         self.display_chat(user)
     
-    def send_message(self):
-        """
-        (Legacy method kept for compatibility.)
-        Currently not used because the bottom input bar has its own method.
-        """
-        if not self.current_chat:
-            print("No chat selected!")
-            return
-        text = self.message_input.text().strip()
-        if text:
-            self.add_message_to_chat(self.current_chat, text, self.username)
-            self.message_input.clear()
     
     def bottom_send_message(self):
         """
         Called when the bottom send button is clicked.
         Adds the message to the active chat using the new bottom input bar.
         """
+        # Add Send via tcp here
         if not self.current_chat:
             print("No chat selected!")
             return
@@ -332,6 +322,7 @@ class ChatApp(QWidget):
         If the sender is not the current user, the chat partner is the sender.
         If the message is from the current user, it's added to the active chat.
         """
+        # Replace in new System where sender is specified
         chat_user = sender if sender != self.username else self.current_chat
         if chat_user is None:
             chat_user = sender
@@ -379,6 +370,7 @@ class ChatApp(QWidget):
         Adds a new chat contact if a valid name is provided.
         The new chat button is inserted before the New Chat button so that it always remains last.
         """
+        # Request Open Key From Buffer
         if contact_name.strip() == "":
             print("No name provided")
             return
