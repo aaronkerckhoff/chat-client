@@ -97,3 +97,21 @@ def sign_message(private_key, message: bytes) -> bytes:
         hashes.SHA256(),
     )
     return signature
+
+
+def verify_signature(public_key, message: bytes, signature: bytes) -> bool:
+    """
+    Verify the RSA-PSS signature.
+    """
+    try:
+        public_key.verify(
+            signature,
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256(),
+        )
+        return True
+    except Exception:
+        return False
