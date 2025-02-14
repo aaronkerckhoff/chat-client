@@ -3,6 +3,7 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from pathlib import Path
 from web_client.client import Client
+import pathlib
 
 import sys
 import os
@@ -117,7 +118,11 @@ class ChatApp(QWidget):
         super().__init__()
         
         # -------------------- INIT --------------------
-        self.appdata_path = Path(os.getenv("APPDATA"))  # Convert to Path object
+        home = pathlib.Path.home()
+        if sys.platform == "win32":
+            self.appdata_path = Path(home / "AppData/Roaming")
+        elif sys.platform == "linux":
+            self.appdata_path = Path(home  / ".local/share")
         print("AppData path: " + str(self.appdata_path))  # Print Save Dir
         
         self.file_path = self.appdata_path / "Chat" / "user.txt"  # Correct path creation
