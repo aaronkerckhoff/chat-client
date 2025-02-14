@@ -57,7 +57,7 @@ def load_public_key():
 # RSA functions
 def rsa_encrypt(public_key, data: bytes) -> bytes:
     """
-    Encrypt data using recipient's RSA public key
+    Encrypt data using recipient's RSA public key.
     """
     ciphertext = public_key.encrypt(
         data,
@@ -68,3 +68,18 @@ def rsa_encrypt(public_key, data: bytes) -> bytes:
         ),
     )
     return ciphertext
+
+
+def rsa_decrypt(private_key, ciphertext: bytes) -> bytes:
+    """
+    Decrypt data using RSA private key.
+    """
+    plaintext = private_key.decrypt(
+        ciphertext,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None,
+        ),
+    )
+    return plaintext
