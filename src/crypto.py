@@ -36,7 +36,7 @@ def save_key_to_env(key, key_name):
         encryption_algorithm=serialization.NoEncryption(),
     )
     key_b64 = base64.b64encode(key_bytes).decode("utf-8")  # Encode in Base64
-    set_key(".env", key_name, key_b64)  # Store in .env
+    set_key("src/.env", key_name, key_b64)  # Store in .env
 
 
 def save_public_key_to_env(key, key_name):
@@ -48,7 +48,7 @@ def save_public_key_to_env(key, key_name):
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
     key_b64 = base64.b64encode(key_bytes).decode("utf-8")  # Encode in Base64
-    set_key(".env", key_name, key_b64)  # Store in .env
+    set_key("src/.env", key_name, key_b64)  # Store in .env
 
 
 def load_key_from_env(key_name):
