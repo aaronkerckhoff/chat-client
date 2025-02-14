@@ -4,14 +4,17 @@ from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from pathlib import Path
 from web_client.client import Client
 
-from client_state import ClientState, new_client
-
-
+import packet_parser
+import packet_creator
 import sys
 import os
 import json
-import sys
-import os
+
+import threading
+import io
+import time
+
+from client_state import ClientState, new_client
 
 #-------------------- CLASSES --------------------
 #Define Login Popup here
@@ -93,6 +96,40 @@ class LoginPopup(QDialog):
         
         self.accept()  # Close the dialog on Name Enter
 
+class WorkerThread(threading.Thread):
+    def __init__(self, client):
+        super().__init__()
+        self.daemon = True  # Ensures thread stops when the main program exits
+        self.running = True
+        self.client = client
+
+    def run(self):
+        while self.running:
+            
+            time.sleep(1000)  
+
+    def stop(self):
+        self.running = False
+
+    def start_task(self, client):
+        """Starts the task in a separate thread"""
+        self.running = True
+        if not self.is_alive():
+            self.start()  # Start the thread if not already running
+
+    def stop_task(self):
+        """Stops the task execution"""
+        self.running = False
+
+    def task(self):
+        """The hardcoded task the thread will execute"""
+        message = self.client.client_socket.receive_message()
+        message = io.BytesIO(message)
+        if not message:
+            print("Connection closed")
+            return
+        packet_parser.parse_packet(message, self.client)
+
 class EventFilter(QObject):
     def __init__(self, main):
         super().__init__()
@@ -148,7 +185,14 @@ class ChatApp(QWidget):
         
     def init_web_client(self):
         print("Starting Web Client Connection...")
-        self.web_client = Client("192.168.176.160", 12345, on_message_received=self.msg_recieved)
+        #self.web_client = Client("192.168.176.160", 12345, on_message_received=self.msg_recieved)
+        # Init client_state here
+        self.client_backend = new_client(self.username, self.receive_message)
+        #init poller
+        self.poller_thread = WorkerThread(self.client_backend)
+        self.poller_thread.start_task()
+
+        
 
     def load_username(self):
         """Loads the username from the user.txt JSON file."""
@@ -160,9 +204,7 @@ class ChatApp(QWidget):
             self.username = "Username Key not Found!"
             sys.exit()
 
-        print("Found Username: " + self.username)
-        self.client_backend = new_client(self.username)
-    
+        print("Found Username: " + self.username)    
     def init_ui(self):
         """Initializes the GUI components."""
         # -------------------- Apply Styling ----------------

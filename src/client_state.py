@@ -22,15 +22,17 @@ class ChatState:
 IP = '192.168.176.160'
 PORT = 12345
         
+
 class ClientState:
 
-    def __init__(self, pub_key: public_key.PublicKey, priv_key, display_name: str):
+    def __init__(self, pub_key: public_key.PublicKey, priv_key, display_name: str, received_callback):
         self.chats: dict[public_key.PublicKey, ChatState] = {},
         self.discovered_clients = dict()
         self.public_key = pub_key
         self.private_key = priv_key
         self.client_socket = client_socket.ClientSocket(IP, PORT)
         self.display_name = display_name
+        self.msg_recieved_callback = received_callback
         
 
     
@@ -80,7 +82,11 @@ class ClientState:
         Todo: We don't check yet whether the message has actually come from the pretended sender, enabeling people to send fake packets making this client think the other party has been hacked."""
         if not sender in self.chats:
             return #We dont know them, maybe log it?
-        self.chats[sender].decrypt_verify_chat(encrypted_message_bytes, decrypted_hash)
+        return_msg = self.chats[sender].decrypt_verify_chat(encrypted_message_bytes, decrypted_hash)
+        
+        if return_msg:
+            self.msg_recieved_callback(return_msg)
+    
     def received_healing(self, sender: public_key.PublicKey, encrypted_new_key: bytes, signature: signature.Signature):
         """The client received a healing message from the sender. 
         The encrypted_new_key has been asymetrically encrypted with the most current public key within the dm message context.
@@ -105,9 +111,9 @@ class ClientState:
     
 
 
-def new_client(display_name: str) -> ClientState:
+def new_client(display_name: str, recieved_callback) -> ClientState:
     crypto.generate_rsa_key_pair()
     priv_key = crypto.load_private_key()
     pub_key = public_key.from_rsa(crypto.load_public_key())
-    client = ClientState(pub_key, priv_key, display_name)
+    client = ClientState(pub_key, priv_key, display_name, recieved_callback)
     return client

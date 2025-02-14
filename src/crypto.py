@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import hashlib
 
-from src.logger_utils import setup_logger
+from logger_utils import setup_logger
 
 logger = setup_logger("rsa_encryption", "rsa_encryption.log")
 
