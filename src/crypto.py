@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from dotenv import load_dotenv, set_key
+import base64
 from logger_utils import setup_logger
 
 logger = setup_logger("cryptography", "cryptography.log")
@@ -27,46 +28,48 @@ load_dotenv()
 
 def save_key_to_env(key, key_name):
     """
-    Saves the key with the key_name into the .env file
+    Saves the key with the key_name into the .env file (Base64 Encoded).
     """
     key_bytes = key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
-    ).decode("utf-8")
-    set_key(".env", key_name, key_bytes)
+    )
+    key_b64 = base64.b64encode(key_bytes).decode("utf-8")  # Encode in Base64
+    set_key(".env", key_name, key_b64)  # Store in .env
 
 
 def save_public_key_to_env(key, key_name):
     """
-    Saves the public key with the key_name into the .env file
+    Saves the public key in Base64 format to avoid newline issues.
     """
     key_bytes = key.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode("utf-8")
-    set_key(".env", key_name, key_bytes)
+    )
+    key_b64 = base64.b64encode(key_bytes).decode("utf-8")  # Encode in Base64
+    set_key(".env", key_name, key_b64)  # Store in .env
 
 
 def load_key_from_env(key_name):
     """
-    Loads the key with the key_name from the .env file
+    Loads the key with the key_name from the .env file (Base64 Decoded).
     """
-    key_bytes = os.getenv(key_name)
-    if key_bytes:
-        return serialization.load_pem_private_key(
-            key_bytes.encode("utf-8"), password=None
-        )
+    key_b64 = os.getenv(key_name)
+    if key_b64:
+        key_bytes = base64.b64decode(key_b64)  # Decode from Base64
+        return serialization.load_pem_private_key(key_bytes, password=None)
     return None
 
 
 def load_public_key_from_env(key_name):
     """
-    Loads the public key with the key_name from the .env file
+    Loads the public key from the .env file (Base64 Decoded).
     """
-    key_bytes = os.getenv(key_name)
-    if key_bytes:
-        return serialization.load_pem_public_key(key_bytes.encode("utf-8"))
+    key_b64 = os.getenv(key_name)
+    if key_b64:
+        key_bytes = base64.b64decode(key_b64)  # Decode from Base64
+        return serialization.load_pem_public_key(key_bytes)
     return None
 
 
@@ -176,9 +179,9 @@ def key_derivation(pk):
 
 
 # Generate or load keys
-sk, pk = get_new_asym_keys()
-peer_sk, peer_pk = get_new_asym_keys()
-"""
+#sk, pk = get_new_asym_keys()
+#peer_sk, peer_pk = get_new_asym_keys()
+'''
 print(sk.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
@@ -203,4 +206,4 @@ encr = aes_encrypt(own_sym_key, message)
 print(f"encrypted message: {encr}")
 decr = aes128_decrypt(peer_sym_key, encr)
 print(f"decrypted:{decr}")
-"""
+'''
