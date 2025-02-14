@@ -1,6 +1,7 @@
 import os
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from src.logger_utils import setup_logger
 
@@ -123,3 +124,13 @@ def generate_aes_key() -> bytes:
     Generates a random 128-bit AES key.
     """
     return os.urandom(16)
+
+
+def aes_encrypt(key: bytes, plaintext: bytes, associated_data: bytes) -> dict:
+    """
+    Encrypts plaintext using AES-GCM.
+    """
+    aesgcm = AESGCM(key)
+    nonce = os.urandom(12)
+    ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data)
+    return {"nonce": nonce, "ciphertext": ciphertext}
