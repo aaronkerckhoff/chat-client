@@ -68,7 +68,7 @@ class ClientState:
     def send_shared_secret(self, receiver: public_key.PublicKey):
         random_key = crypto.generate_aes_key()
         signed_key = signature.sign_with(self.private_key, random_key)
-        encrypted_key = crypto.rsa_encrypt(self.public_key.inner, random_key)
+        encrypted_key = crypto.rsa_encrypt(receiver.inner, random_key)
         message_pckt = packet_creator.create_exchange_message(
             base64.b64encode(encrypted_key).decode("utf-8"),
             self.public_key.as_base64_string(),
