@@ -1,8 +1,8 @@
-from client_state import ClientState, new_client
+from client_state import ClientState, load_or_new_client
 import packet_parser
 import io
 
-client = new_client("Hello World, Im leah")
+client = load_or_new_client("Hello World, Im leah")
 
 client.broadcast_self()
 

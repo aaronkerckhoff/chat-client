@@ -43,6 +43,13 @@ def generate_rsa_key_pair():
 
     logger.info("RSA key pair generated and saved.")
 
+def keys_exist() -> bool:
+    try:
+        load_private_key()
+        load_public_key()
+    except OSError:
+        return False
+    return True
 
 def load_private_key():
     with open(PRIVATE_KEY_FILE, "rb") as file:

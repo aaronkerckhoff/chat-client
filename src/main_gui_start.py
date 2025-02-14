@@ -15,7 +15,7 @@ import threading
 import io
 import time
 
-from client_state import ClientState, new_client, ChatState
+from client_state import ClientState, load_or_new_client, ChatState
 
 #-------------------- CLASSES --------------------
 #Define Login Popup here
@@ -199,7 +199,7 @@ class ChatApp(QWidget):
         print("Starting Web Client Connection...")
         #self.web_client = Client("192.168.176.160", 12345, on_message_received=self.msg_recieved)
         # Init client_state here
-        self.client_backend = new_client(self.username, self.msg_recieved)
+        self.client_backend = load_or_new_client(self.username, self.msg_recieved)
         #init poller
         self.poller_thread = WorkerThread(self.client_backend)
         self.poller_thread.start_task()
