@@ -105,9 +105,13 @@ class WorkerThread(threading.Thread):
         self.client = client
 
     def run(self):
+        running_secs = 0
         while self.running:
-            self.client.broadcast_self()
-            time.sleep(100)  
+            self.task()
+            if running_secs % 50 == 0:
+                self.client.broadcast_self()
+            running_secs += 1
+            time.sleep(1)  
 
     def stop(self):
         self.running = False
@@ -126,6 +130,8 @@ class WorkerThread(threading.Thread):
         """The hardcoded task the thread will execute"""
         print("Running task")
         message = self.client.client_socket.receive_message()
+        if not message:
+            return
         message = io.BytesIO(message)
         if not message:
             print("Connection closed")
