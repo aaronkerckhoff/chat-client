@@ -30,7 +30,7 @@ PORT = 12345
 def runClient():
     client = Client(IP, PORT)
 
-    client.send('0b' +format(69, '08b') + format(0, '07b') + format(0, '015b') + '{"from_buf": false, "type": "BROADCAST", "receiver": 1234567890, "inner": {}}' + '\n')
+    client.send('0b' +format(69, '08b') + format(0, '07b') + format(0, '015b') + '{"from_buf": false, "type": "BROADCAST", "receiver": 1234567890, "inner": {"type": "WANTS"}}' + '\n')
 
     print(client.listen())
 

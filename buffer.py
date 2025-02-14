@@ -63,16 +63,15 @@ def formatData(data, magicNumber: int):
 def runBuffer():
     buffer = Buffer(IP, PORT)
 
-    data = buffer.listen()
-
-    sdata, v, p, cv = formatData(data, 69)
-
-    buffer.enqueue(sdata["receiver"], data)
-
-    print(f"Received from server: {data}", end="")
-
-
-    sleep(1)
+    for _ in range(time):
+        data = buffer.listen()
+        sdata, v, p, cv = formatData(data, 69)
+        if sdata["inner"]["type"] == "WANTS":
+            ...
+        elif sdata['from_buf'] == False:
+            buffer.enqueue(sdata["receiver"], data)
+            print(f"Received: {data}", end="")
+        sleep(1)
 
     buffer.socket.close()
 
