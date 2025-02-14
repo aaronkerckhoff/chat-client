@@ -33,6 +33,7 @@ def runClient():
     client.send('0b' +format(69, '08b') + format(0, '07b') + format(0, '015b') + '{"from_buf": false, "type": "BROADCAST", "receiver": 1234567890, "inner": {"type": "WANTS"}}' + '\n')
 
     print(client.listen())
+    print(client.listen())
 
     sleep(1)
 

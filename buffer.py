@@ -67,7 +67,8 @@ def runBuffer():
         data = buffer.listen()
         sdata, v, p, cv = formatData(data, 69)
         if sdata["inner"]["type"] == "WANTS":
-            ...
+            sleep(1)
+            buffer.send('0b' +format(69, '08b') + format(0, '07b') + format(0, '015b') + '{"from_buf": true, "type": "BROADCAST", "receiver": 1234567890, "inner": {"type": "EXISTS"}}' + '\n')
         elif sdata['from_buf'] == False:
             buffer.enqueue(sdata["receiver"], data)
             print(f"Received: {data}", end="")
