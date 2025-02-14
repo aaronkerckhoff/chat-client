@@ -181,7 +181,7 @@ class ChatApp(QWidget):
         # Dictionary to store messages per chat (key: chat partner, value: list of (sender, message))
         self.chats = {}      
         # Currently selected chat partner (for messages sent by you)
-        self.current_chat = None  
+        self.current_chat = None
         
         self.init_ui()
         #self.add_test_messages()  # Add some test messages to verify the functionality
@@ -408,7 +408,7 @@ class ChatApp(QWidget):
         # Send message via web_client
         # IMPORTANT ------ Implement Encryption before sending
         try:
-            self.client_backend.send_message(self.client_backend.chats.next((k for k, v in self.client_backend.chats.items() if v == self.current_chat), None), text) # Need \n escape in order to be able to send message
+            self.client_backend.send_message(self.client_backend.chats[self.current_chat], text) # Need \n escape in order to be able to send message
             print("Message sent to web client")
         except Exception as e:
             print(f"CRITICAL: The message wasnt able to be sent: {e}")
