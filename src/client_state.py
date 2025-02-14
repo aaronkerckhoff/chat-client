@@ -59,7 +59,7 @@ class ClientState:
         sym_key = crypto.rsa_decrypt(self.private_key, encrypted_shared_secret)
         if not shared_secret_signature.valid_for(sender, sym_key):
             return
-        self.chats[sender] = sym_key            
+        self.chats[sender] = ChatState(sym_key, self.discovered_clients[sender], sender)            
         pass
 
     def send_shared_secret(self, receiver: public_key.PublicKey):
@@ -73,6 +73,8 @@ class ClientState:
             receiver.as_base64_string()
         )
         self.client_socket.send(message_pckt)
+        self.chats[receiver] = ChatState(random_key, self.discovered_clients[receiver], receiver)            
+
 
     def received_message(self, sender: public_key.PublicKey, encrypted_message_bytes: bytes, decrypted_hash: bytes):
         """The client has received a message that is still encrypted.
@@ -105,7 +107,7 @@ class ClientState:
         """Received a broadcast message where a connected client announces themselves. 
         Their name has been signed with the signature."""
         if not signature.valid_for(public_key, name.encode("utf-8")):
-            print("Sig invalid")
+            print("Sig invalid " + public_key.as_base64_string() + "\nSig:" + signature.to_base64())
             return
         self.discovered_clients[public_key] = name
     

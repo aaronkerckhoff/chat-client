@@ -68,10 +68,6 @@ def create_direct_message(receiver : str):
     body["receiver"] = receiver
     return body
 
-def create_direct_message(receiver, message_content) -> bytes:
-    body = create_direct_message(receiver)
-    body["content"] = message_content
-    return as_bytes(body)
 
 def create_direct_message(receiver, message: bytes, hash: bytes, sender_pub_key: public_key.PublicKey):
     body = create_direct_message(receiver)

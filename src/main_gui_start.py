@@ -289,7 +289,7 @@ class ChatApp(QWidget):
 
         # Add test users
         #self.test_users = ["Bob", "Alice", "Martin"] # Simulating many users -> REMOVE IN PROD
-        self.test_users = None
+        self.test_users = []
         #for user in self.test_users:
         #    user_button = QPushButton(user)
         #    user_button.clicked.connect(lambda checked, u=user: self.on_user_selected(u))
@@ -416,6 +416,8 @@ class ChatApp(QWidget):
         
         # Send message via web_client
         # IMPORTANT ------ Implement Encryption before sending
+        if not self.current_chat in self.client_backend.chats:
+            self.client_backend.send_shared_secret(self.current_chat)
         try:
             self.client_backend.send_message(self.client_backend.chats[self.current_chat], text) # Need \n escape in order to be able to send message
             print("Message sent to web client")
@@ -466,7 +468,7 @@ class ChatApp(QWidget):
         # Display stored messages for the selected chat
         for sender, message in self.chats.get(chat_user, []):
             self.add_message_label(sender, message)
-        username = self.client_backend.chats[chat_user].display_name
+        username = self.client_backend.discovered_clients[chat_user]
         self.message_area_label.setText(f"Chat Messages - {username}")
 
     
@@ -525,8 +527,9 @@ class ChatApp(QWidget):
         The new chat button is inserted before the New Chat button so that it always remains last.
         """
         found_users = []
-        for key, status in self.client_backend.chats.values():
-            if status.display_name == contact_name:
+        for key in self.client_backend.discovered_clients.keys():
+            key_name = self.client_backend.discovered_clients[key]
+            if key_name == contact_name:
                 found_users.append(key)
 
         
@@ -538,14 +541,15 @@ class ChatApp(QWidget):
         if len(found_users) > 1:
             print("There were multipe users with that name, Todo: let client select.")
             return
-        contact = found_users[0]
-        if contact in self.test_users:
+        
+        contact_key = found_users[0]
+        if contact_key in self.test_users:
             print("Chat with that contact already exists")
             return
 
         # Remove stretch temporarily
         new_user_button = QPushButton(contact_name)
-        new_user_button.clicked.connect(lambda checked, u=contact_name: self.on_user_selected(u))
+        new_user_button.clicked.connect(lambda checked, u=contact_key: self.on_user_selected(u))
 
         # ✅ Remove the existing stretch before adding a new contact
         if self.contacts_layout.count() > 0:
