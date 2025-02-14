@@ -1,4 +1,5 @@
 import socket
+from time import sleep
 
 class Client:
     def __init__(self, ip: str, port: int) -> None:
@@ -31,6 +32,8 @@ def runClient():
     client.send('test\n')
 
     print(client.listen())
+
+    sleep(1)
 
     client.socket.close()
 
