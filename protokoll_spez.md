@@ -21,7 +21,7 @@ Wir benutzen verschiedene Level von Abstraktionen von den JSON Objekten.
     - inner: *Json Objekt* - das innere Paket für MEHR ABSTRAKTION JAAAAA
 
 - Level 1 (BROADCAST, im inner Objekt)
-    - type: EXISTS/WANTS - Die Art der Broadcast Nachricht
+    - type: EXISTS/WANTS/WANTSNAME - Die Art der Broadcast Nachricht
         - Exists - Ein client broadcasted seinen public key und display name zu dem Gesamten Netzwerk:
             - public_key: *Public Key* - Der public key der Person
             - display_name: *String* - Der bevorzuge Name der Person (Jeder kann jeden Namen haben, bei Kollision public key überprüfen)
@@ -29,10 +29,16 @@ Wir benutzen verschiedene Level von Abstraktionen von den JSON Objekten.
         - Wants - Ein client will, dass ein Broadcast server die letzten *Directed* Nachrichten an einen bestimmten public key relayed.
             - public_key: *Public Key* - Der public key dessen Nachrichten relayed werden soll
             - *todo* Queue leeren mit cryptographischen signaturen das eine Nachricht bekommen und verarbeitet wurde.
+        - Wantsname - Ein client sucht nach einem nutzer mit bestimmten Namen und will broadcast messages von dem buffer server gerelayed bekommen
+            - name: *String* - die namen query
 
 - Level 1 (DIRECTED, im inner Objekt)
-    - type: HEAL/MESSAGE - Die art der Directed Nachricht
-        - Heal - Heilungsprozess
+    - type: HEAL/MESSAGE/EXCHANGE - Die art der Directed Nachricht
+        - Exchange - Iniziiert einen Chat indem ein mit dem globalen key der anderen Partei verschlüsseltes shared secret gesendet wird.
+            - sym_key: *Key* - das shared secret
+            - sender: *Public Key*
+            - sig: public key signed decrypted sym_key
+        - Heal - Heilungsprozess ⚠️ Support ab Version 1
             - new_key: *Public Key* - The new key used for the healing process
             - sig: *Signature* - Signature, signed with the public key of the other partie
             - sender: *Public Key* - The global public key of the sender
@@ -45,6 +51,7 @@ Wir benutzen verschiedene Level von Abstraktionen von den JSON Objekten.
 
 ### Typen
 Verschieden Typen die in der JSON Datei verwendet werden
+- *Key* - Ein mit verschlüsselter 256 key
 - *Public Key* - Ein Elliptic Curve 256 Public key, der als Base64 encodierter String encodiert wird.
 - *Signature* - Eine digitale Unterschrift
 - *Encrypted JSON* - Ein JSON objekt, dass Verschlüsselt wurde und also Base64 String encodiert wird.
