@@ -17,9 +17,13 @@ def create_head() -> io.BytesIO:
 
 def as_bytes(body) -> bytes:
     stream = create_head()
-    encoded_body = json.dumps(body).encode(encoding="utf-8")
+    #stream = io.BytesIO()
+    json_body = json.dumps(body)
+    json_body += '\n'
+    encoded_body = json_body.encode(encoding="utf-8")
+
     stream.write(encoded_body)
-    return stream.read()
+    return stream.getvalue()
 
 def create_body(message_type):
     body = {
@@ -30,6 +34,7 @@ def create_body(message_type):
 
 def create_broadcast_message():
     body = create_body("BROADCAST")
+    return body
 
 def create_exists_message(public_key: str, display_name: str, signature: str):
     body = create_broadcast_message()

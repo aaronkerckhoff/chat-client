@@ -90,6 +90,6 @@ class ClientState:
 def new_client(display_name: str) -> ClientState:
     crypto.generate_rsa_key_pair()
     priv_key = crypto.load_private_key()
-    pub_key = crypto.load_public_key()
+    pub_key = public_key.from_rsa(crypto.load_public_key())
     client = ClientState(pub_key, priv_key, display_name)
     return client

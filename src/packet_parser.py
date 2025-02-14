@@ -98,7 +98,7 @@ def parse_packet(io_stream: io.BytesIO, client: ClientState) -> None | BaseMessa
     """Parses a packet from an io_stream. This includes head and body, and then calls the client interface with the appropriate package."""
     if not valid_head(io_stream):
         return None
-    body = io_stream.read().decode(str="utf-8")
+    body = io_stream.read()#.decode(str="utf-8")
     body_object = json.loads(body)
     execute_message(body_object, client)
     
