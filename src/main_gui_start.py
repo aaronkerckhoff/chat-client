@@ -128,7 +128,7 @@ class WorkerThread(threading.Thread):
 
     def task(self):
         """The hardcoded task the thread will execute"""
-        print("Running task")
+        #print("Running task")
         message = self.client.client_socket.receive_message()
         if not message:
             return
@@ -136,6 +136,9 @@ class WorkerThread(threading.Thread):
         if not message:
             print("Connection closed")
             return
+        
+        print(f"Message Recieved: {message}")
+
         packet_parser.parse_packet(message, self.client)
 
 class EventFilter(QObject):
