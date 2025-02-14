@@ -115,3 +115,11 @@ def verify_signature(public_key, message: bytes, signature: bytes) -> bool:
         return True
     except Exception:
         return False
+
+
+# AES functions
+def generate_aes_key() -> bytes:
+    """
+    Generates a random 128-bit AES key.
+    """
+    return os.urandom(16)
