@@ -22,4 +22,6 @@ class ClientState:
         """Received a broadcast message where a connected client announces themselves. 
         Their name has been signed with the signature."""
         pass
+    def fqg():
+        pass
     
