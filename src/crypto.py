@@ -22,7 +22,7 @@ def generate_symmetric_key(shared_secret, key_length=32):
 
 
 # Load environment variables from .env file
-# load_dotenv()
+load_dotenv()
 
 
 def save_key_to_env(key, key_name):
