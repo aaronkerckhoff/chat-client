@@ -1,209 +1,147 @@
 import os
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from dotenv import load_dotenv, set_key
-import base64
+
 from src.logger_utils import setup_logger
 
-logger = setup_logger("cryptography", "cryptography.log")
+logger = setup_logger("rsa_encryption", "rsa_encryption.log")
+
+KEY_DIR = "keys"
+PRIVATE_KEY_FILE = os.path.join(KEY_DIR, "private_key.pem")
+PUBLIC_KEY_FILE = os.path.join(KEY_DIR, "public_key.pem")
 
 
-def generate_symmetric_key(shared_secret, key_length=32):
+# Key creation and loading helper functions
+def generate_rsa_key_pair():
     """
-    Generates a symmetric key using an initial shared secret and a key length
+    Generates an RSA key pair and stores them as PEM files.
     """
-    derived_key = HKDF(
-        algorithm=hashes.SHA256(), length=key_length, salt=None, info=b"handshake data"
-    ).derive(shared_secret)
+    if not os.path.exists(KEY_DIR):
+        os.makedirs(KEY_DIR)
 
-    return derived_key
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+    with open(PRIVATE_KEY_FILE, "wb") as file:
+        file.write(
+            private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+        )
+
+    public_key = private_key.public_key()
+    with open(PUBLIC_KEY_FILE, "wb") as file:
+        file.write(
+            public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+        )
+
+    logger.info("RSA key pair generated and saved.")
 
 
-# Load environment variables from .env file
-load_dotenv()
+def load_private_key():
+    with open(PRIVATE_KEY_FILE, "rb") as file:
+        private_key = serialization.load_pem_private_key(file.read(), password=None)
+    return private_key
 
 
-def save_key_to_env(key, key_name):
+def load_public_key():
+    with open(PUBLIC_KEY_FILE, "rb") as file:
+        public_key = serialization.load_pem_public_key(file.read())
+    return public_key
+
+
+# RSA functions
+def rsa_encrypt(public_key, data: bytes) -> bytes:
     """
-    Saves the key with the key_name into the .env file (Base64 Encoded).
+    Encrypt data using recipient's RSA public key.
     """
-    key_bytes = key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
+    ciphertext = public_key.encrypt(
+        data,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None,
+        ),
     )
-    key_b64 = base64.b64encode(key_bytes).decode("utf-8")  # Encode in Base64
-    set_key("src/.env", key_name, key_b64)  # Store in .env
+    return ciphertext
 
 
-def save_public_key_to_env(key, key_name):
+def rsa_decrypt(private_key, ciphertext: bytes) -> bytes:
     """
-    Saves the public key in Base64 format to avoid newline issues.
+    Decrypt data using RSA private key.
     """
-    key_bytes = key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    plaintext = private_key.decrypt(
+        ciphertext,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None,
+        ),
     )
-    key_b64 = base64.b64encode(key_bytes).decode("utf-8")  # Encode in Base64
-    set_key("src/.env", key_name, key_b64)  # Store in .env
-
-
-def load_key_from_env(key_name):
-    """
-    Loads the key with the key_name from the .env file (Base64 Decoded).
-    """
-    key_b64 = os.getenv(key_name)
-    if key_b64:
-        key_bytes = base64.b64decode(key_b64)  # Decode from Base64
-        return serialization.load_pem_private_key(key_bytes, password=None)
-    return None
-
-
-def load_public_key_from_env(key_name):
-    """
-    Loads the public key from the .env file (Base64 Decoded).
-    """
-    key_b64 = os.getenv(key_name)
-    if key_b64:
-        key_bytes = base64.b64decode(key_b64)  # Decode from Base64
-        return serialization.load_pem_public_key(key_bytes)
-    return None
-
-
-def get_new_asym_keys():
-    """
-    Returns the keys from the .env file if existing,
-    else generating and returning a new sk and pk
-    """
-    secret_key = load_key_from_env("SECRET_KEY")
-    public_key = load_public_key_from_env("PUBLIC_KEY")
-    if secret_key is None or public_key is None:
-        secret_key = ec.generate_private_key(ec.SECP256R1())
-        public_key = secret_key.public_key()
-        save_key_to_env(secret_key, "SECRET_KEY")
-        save_public_key_to_env(public_key, "PUBLIC_KEY")
-    return secret_key, public_key
-
-
-def aes_encrypt(key, plaintext, associated_data=None):
-    """
-    Encrypt plaintext using AES-256-GCM.
-    """
-    if len(key) != 32:
-        logger.error("Key must be 32 bytes for AES-256")
-        return
-
-    aesgcm = AESGCM(key)
-    nonce = os.urandom(12)
-    ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data)
-
-    return {
-        "nonce": nonce,
-        "ciphertext": ciphertext,
-        "associated_data": associated_data,
-    }
-
-
-def aes_decrypt(key, encrypted_data):
-    """
-    Decrypt ciphertext using AES-256-GCM.
-    """
-    if len(key) != 32:
-        logger.error("Key must be 32 bytes for AES-128")
-        return
-    nonce = encrypted_data["nonce"]
-    ciphertext = encrypted_data["ciphertext"]
-    associated_data = encrypted_data.get("associated_data", None)
-
-    aesgcm = AESGCM(key)
-    plaintext = aesgcm.decrypt(nonce, ciphertext, associated_data)
-
     return plaintext
 
 
-def ecc_key_derivation(sk, peer_pk):
+def sign_message(private_key, message: bytes) -> bytes:
     """
-    Generates a new shared secret and returns it
+    Sign a message using RSA-PSS.
     """
-    shared_secret = sk.exchange(ec.ECDH(), peer_pk)
-    return shared_secret
-
-
-def get_asym_sig(sk, message):
-    """
-    Generates a unique signature, based on sk and message
-    """
-    message = message.encode("utf-8")
-    signature = sk.sign(message, ec.ECDSA(hashes.SHA256()))
+    signature = private_key.sign(
+        message,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256(),
+    )
     return signature
 
 
-def verify_asym_sig(pk, message, signature):
+def verify_signature(public_key, message: bytes, signature: bytes) -> bool:
     """
-    Verifies whether a signature is correct for a specific message and pk
+    Verify the RSA-PSS signature.
     """
-    message = message.encode("utf-8")
     try:
-        pk.verify(signature, message, ec.ECDSA(hashes.SHA256()))
-        print("The signature is valid!")
+        public_key.verify(
+            signature,
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256(),
+        )
         return True
-    except Exception as e:
-        print("The signature is invalid:", e)
+    except Exception:
         return False
 
 
-def key_derivation(pk):
+# AES functions
+def generate_aes_key() -> bytes:
     """
-    Creates 2 new keys from the public key
+    Generates a random 128-bit AES key.
     """
-    salt = os.urandom(16)
-    key_length = 32  # Example key length
-    hkdf = HKDF(
-        algorithm=hashes.SHA256(),
-        length=2 * key_length,  # Derive twice the length of a single key
-        salt=salt,
-        info=b"handshake data",
-    )
-    pk_bytes = pk.public_bytes(
-        encoding=serialization.Encoding.DER,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
-    derived_key_material = hkdf.derive(pk_bytes)
-    key1 = derived_key_material[:key_length]
-    key2 = derived_key_material[key_length:]
-    return key1, key2
+    return os.urandom(16)
 
 
-# Generate or load keys
-# sk, pk = get_new_asym_keys()
-# peer_sk, peer_pk = get_new_asym_keys()
-"""
-print(sk.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    ).decode("utf-8"),peer_sk.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    ).decode("utf-8"))
+def aes_encrypt(key: bytes, plaintext: bytes, associated_data: bytes) -> dict:
+    """
+    Encrypts plaintext using AES-GCM.
+    """
+    aesgcm = AESGCM(key)
+    nonce = os.urandom(12)
+    ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data)
+    return {"nonce": nonce, "ciphertext": ciphertext}
 
-own_secret = ecc_key_derivation(sk,peer_pk)
-peer_secret = ecc_key_derivation(peer_sk, pk)
-print(f"own_secret{own_secret}")
-print(f"peer_secret{peer_secret}")
-print("length", len(own_secret))
-own_sym_key= generate_symmetric_key(own_secret)
-peer_sym_key = generate_symmetric_key(peer_secret)
-print(own_sym_key)
-print(peer_sym_key)
-message = b"wir sind die besten"
-encr = aes_encrypt(own_sym_key, message)
-print(f"encrypted message: {encr}")
-decr = aes_decrypt(peer_sym_key, encr)
-print(f"decrypted:{decr}")
-"""
+
+def aes_decrypt(
+    key: bytes, nonce: bytes, ciphertext: bytes, associated_data: bytes
+) -> bytes:
+    """
+    Decrypt ciphertext using AES-GCM.
+    """
+    aesgcm = AESGCM(key)
+    plaintext = aesgcm.decrypt(nonce, ciphertext, associated_data)
+    return plaintext
