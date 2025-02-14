@@ -7,10 +7,11 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from dotenv import load_dotenv, set_key
 
 
-def generate_symmetric_key_128(shared_secret, key_length=32):
+def generate_symmetric_key(shared_secret, key_length=32):
     """
     Generates a symmetric key using an initial shared secret and a key length
     """
+def generate_symmetric_key(shared_secret, key_length=32):
     derived_key = HKDF(
         algorithm=hashes.SHA256(), length=key_length, salt=None, info=b"handshake data"
     ).derive(shared_secret)
@@ -19,7 +20,7 @@ def generate_symmetric_key_128(shared_secret, key_length=32):
 
 
 # Load environment variables from .env file
-load_dotenv()
+#load_dotenv()
 
 
 def save_key_to_env(key, key_name):
@@ -67,7 +68,7 @@ def load_public_key_from_env(key_name):
     return None
 
 
-def get_new_asym_keys()
+def get_new_asym_keys():
     """
     Returns the keys from the .env file if existing,
     else generating and returning a new sk and pk
@@ -84,15 +85,15 @@ def get_new_asym_keys()
 
 def aes_encrypt(key, plaintext, associated_data=None):
     """
-    Encrypt plaintext using AES-128-GCM.
+    Encrypt plaintext using AES-256-GCM.
     """
-    if len(key) != 16:
-        print("Key must be 16 bytes for AES-128")
+    if len(key) != 32:
+        print("Key must be 32 bytes for AES-256")
         return
 
     aesgcm = AESGCM(key)
     nonce = os.urandom(12)
-    ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data)
+    ciphertext = aesgcm.encrypt(nonce, plaintext.encode("UTF-8"), associated_data)
 
     return {
         "nonce": nonce,
@@ -105,10 +106,10 @@ def aes128_decrypt(key, encrypted_data):
     """
     Decrypt ciphertext using AES-128-GCM.
     """
-    if len(key) != 16:
+    if len(key) != 32:
         print("Key must be 16 bytes for AES-128")
         return
-
+    print(f"\nAAAAAAAAAAAAAAAAAAAA\n{encrypted_data} ")
     nonce = encrypted_data["nonce"]
     ciphertext = encrypted_data["ciphertext"]
     associated_data = encrypted_data.get("associated_data", None)
@@ -123,6 +124,7 @@ def eec_key_derivation(sk, peer_pk):
     """
     Generates a new shared secret and returns it
     """
+def ecc_key_derivation(sk, peer_pk):
     shared_secret = sk.exchange(ec.ECDH(), peer_pk)
     return shared_secret
 
@@ -175,3 +177,30 @@ def key_derivation(pk):
 
 # Generate or load keys
 sk, pk = get_new_asym_keys()
+peer_sk, peer_pk = get_new_asym_keys()
+'''
+print(sk.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode("utf-8"),peer_sk.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode("utf-8"))
+
+own_secret = ecc_key_derivation(sk,peer_pk)
+peer_secret = ecc_key_derivation(peer_sk, pk)
+print(f"own_secret{own_secret}")
+print(f"peer_secret{peer_secret}")
+print("length", len(own_secret))
+own_sym_key= generate_symmetric_key(own_secret)
+peer_sym_key = generate_symmetric_key(peer_secret)
+print(own_sym_key)
+print(peer_sym_key)
+message = "wir sind die besten"
+encr = aes_encrypt(own_sym_key, message)
+print(f"encrypted message: {encr}")
+decr = aes128_decrypt(peer_sym_key, encr)
+print(f"decrypted:{decr}")
+'''
