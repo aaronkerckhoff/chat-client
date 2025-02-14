@@ -2,7 +2,6 @@ import public_key
 import signature
 import crypto
 import client_socket
-import packet_parser
 import packet_creator
 
 class ChatState:
@@ -15,11 +14,11 @@ class ChatState:
         decrypted_message = crypto.aes_decrypt(self.symetric_key, message)
         if decrypted_message == None:
             return None
-        received_hash = crypto.hash(decrypted_message)
+        received_hash = crypto.get_sha256_hash(decrypted_message)
         if received_hash == decrypted_hash:
             return decrypted_message.decode("utf-8")
 
-IP = '192.168.176.250'
+IP = '192.168.176.160'
 PORT = 12345
         
 class ClientState:
@@ -28,15 +27,10 @@ class ClientState:
         self.chats: dict[public_key.PublicKey, ChatState] = {}
         self.public_key = pub_key
         self.private_key = priv_key
-        self.client_socket = client_socket.ClientSocket((IP, PORT))
+        self.client_socket = client_socket.ClientSocket(IP, PORT)
         self.display_name = display_name
         
-    def update(self):
-        while True:
-            message = self.client_socket.receive_message()
-            if not message:
-                break
-            packet_parser.parse_packet(message, self)
+
     
     def send_message(self, chat: public_key.PublicKey, message: str):
         message_bytes = message.encode("utf-8")
@@ -91,3 +85,11 @@ class ClientState:
         Their name has been signed with the signature."""
         pass
     
+
+
+def new_client(display_name: str) -> ClientState:
+    crypto.generate_rsa_key_pair()
+    priv_key = crypto.load_private_key()
+    pub_key = crypto.load_public_key()
+    client = ClientState(pub_key, priv_key, display_name)
+    return client
