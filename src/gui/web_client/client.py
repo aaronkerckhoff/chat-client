@@ -8,9 +8,13 @@ class Client:
 
     def send(self, message: str) -> None:
         try:
+            print(f"Sending data... ")
             self.socket.send(message.encode("utf-8"))
+            print("Data sent!")
         except Exception as e:
+            print(f"Fialed: {e}")
             raise Exception(f"Error: {e}")
+
 
     def listen(self):
         try:
@@ -21,6 +25,9 @@ class Client:
 
         except Exception as e:
             raise Exception(f"Error: {e}")
+        
+    def dc(self):
+        self.socket.close()
 
 
 IP = '192.168.176.250'
@@ -35,7 +42,9 @@ def runClient():
 
     sleep(1)
 
-    client.socket.close()
+    # Close Client when done
+    client.dc()
+
 
 if __name__ == '__main__':
     runClient()

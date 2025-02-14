@@ -1,12 +1,14 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog
-from PyQt6.QtGui import QFont, QFontDatabase, QIcon
-from PyQt6.QtCore import Qt, QFile
+from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt, QEvent, QObject
 from pathlib import Path
+from web_client.client import Client
 
 import sys
 import os
 import json
-
+import sys
+import os
 
 #-------------------- CLASSES --------------------
 #Define Login Popup here
@@ -88,6 +90,25 @@ class LoginPopup(QDialog):
         
         self.accept()  # Close the dialog on Name Enter
 
+class EventFilter(QObject):
+    def __init__(self, main):
+        super().__init__()
+        self.main = main
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.Type.KeyPress and isinstance(obj, QLineEdit):
+            if event.key() == Qt.Key.Key_Return:  # Enter key
+                if event.modifiers() == Qt.KeyboardModifier.ShiftModifier:
+                    obj.setText(obj.text() + "\n")
+                    
+                    print("Shift enter pressed")
+                else:
+                    self.main.bottom_send_message()
+                    
+                    print("Enter pressed")
+                return True  # Block the event from reaching the default handler
+        return super().eventFilter(obj, event)
+
 class ChatApp(QWidget):
     def __init__(self):
         """
@@ -120,10 +141,11 @@ class ChatApp(QWidget):
         
         self.init_ui()
         self.add_test_messages()  # Add some test messages to verify the functionality
+        self.init_web_client() #  Set up the Web Client
         
     def init_web_client(self):
         print("Starting Web Client Connection...")
-    
+        self.web_client = Client("192.168.176.160", 12345)
 
     def load_username(self):
         """Loads the username from the user.txt JSON file."""
@@ -228,7 +250,9 @@ class ChatApp(QWidget):
         self.bottom_send_button.clicked.connect(self.bottom_send_message)
         self.bottom_upload_button.clicked.connect(self.upload_file)
         
-        self.bottom_message_input.returnPressed.connect(self.bottom_send_message)
+        # Detect Enter / Shift+Enter for newline characters sperately
+        self.eventFilter = EventFilter(self)
+        self.bottom_message_input.installEventFilter(self.eventFilter)
 
         # Add a stretch to push the input bar to the bottom
         layout.addStretch()
@@ -240,7 +264,7 @@ class ChatApp(QWidget):
         if self.test_users:
             self.display_chat(self.test_users[0])
             self.current_chat = self.test_users[0]
-    
+
     def on_message_received(self, message, sender):
         """
         Called when a new message is received.
@@ -284,13 +308,30 @@ class ChatApp(QWidget):
         if text:
             self.add_message_to_chat(self.current_chat, text, self.username)
             self.bottom_message_input.clear()
+        else:
+            print("Text was empty. Escaping...")
+            return
+        
+        # Send message via web_client
+        # IMPORTANT ------ Implement Encryption before sending
+        try:
+            self.web_client.send(text + "\n") # Need \n escape in order to be able to send message
+            print("Message sent to web client")
+        except Exception as e:
+            print(f"CRITICAL: The message wasnt able to be sent: {e}")
+
+        
     
     def upload_file(self):
         """
         Called when the upload button is clicked.
         Currently left empty for later implementation.
         """
-        self.open_file_dialog()
+        file_bytes = self.open_file_dialog()
+
+        # Send message with different Type
+        # Implement Encryption before sending
+        self.web_client.send(file_bytes)
         pass
     
     # -------------------- New Chat Message System --------------------
@@ -404,7 +445,9 @@ class ChatApp(QWidget):
                 file_bytes = file.read()  # Read file as bytes
                 print(f"File Bytes: {file_bytes[:50]}...")  # Print first 50 bytes as a check
         
-        # Send as File Message
+        # Return File Bytes
+        return file_bytes
+
 
 
 # Main Statement -> Creates the main window
