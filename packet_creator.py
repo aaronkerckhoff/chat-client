@@ -47,6 +47,14 @@ def create_wants_message(request_public_key: str):
     }
     return as_bytes(body)
 
+def create_wants_name_message(name: str):
+    body = create_broadcast_message()
+    body["inner"] = {
+        "type": "WANTSNAME",
+        "name": name,
+    }
+    return as_bytes(body)
+
 def create_direct_message(receiver : str):
     body = create_body("DIRECTED")
     body["receiver"] = receiver

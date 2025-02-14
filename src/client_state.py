@@ -21,6 +21,10 @@ class ClientState:
         """A client on the network requested that buffer servers send the most recent messages to the requested receiver.
         This function can be ignored by non-buffer clients"""
         pass
+    def other_wants_name(self, name_query: str):
+        """A client on the network requested that buffer servers resend broadcast/exists messages of every user that matches a certain name query
+        This function can be ignored by non-buffer clients"""
+        pass
     def discovered_client(self, public_key: public_key.PublicKey, name: str, signature: signature.Signature):
         """Received a broadcast message where a connected client announces themselves. 
         Their name has been signed with the signature."""

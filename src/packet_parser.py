@@ -47,6 +47,9 @@ def execute_broadcast_message(dic: dict, client: ClientState):
         case "WANTS":
             requested = public_key.from_base64_string(dic["public_key"])
             client.other_wants(requested)
+        case "WANTSNAME":
+            requested = public_key.from_base64_string(dic["name"])
+            client.other_wants(requested)
 
 def execute_directed_message(dic: dict, client: ClientState):
     type = dic["type"]

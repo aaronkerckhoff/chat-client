@@ -21,7 +21,7 @@ Wir benutzen verschiedene Level von Abstraktionen von den JSON Objekten.
     - inner: *Json Objekt* - das innere Paket für MEHR ABSTRAKTION JAAAAA
 
 - Level 1 (BROADCAST, im inner Objekt)
-    - type: EXISTS/WANTS - Die Art der Broadcast Nachricht
+    - type: EXISTS/WANTS/WANTSNAME - Die Art der Broadcast Nachricht
         - Exists - Ein client broadcasted seinen public key und display name zu dem Gesamten Netzwerk:
             - public_key: *Public Key* - Der public key der Person
             - display_name: *String* - Der bevorzuge Name der Person (Jeder kann jeden Namen haben, bei Kollision public key überprüfen)
@@ -29,6 +29,8 @@ Wir benutzen verschiedene Level von Abstraktionen von den JSON Objekten.
         - Wants - Ein client will, dass ein Broadcast server die letzten *Directed* Nachrichten an einen bestimmten public key relayed.
             - public_key: *Public Key* - Der public key dessen Nachrichten relayed werden soll
             - *todo* Queue leeren mit cryptographischen signaturen das eine Nachricht bekommen und verarbeitet wurde.
+        - Wantsname - Ein client sucht nach einem nutzer mit bestimmten Namen und will broadcast messages von dem buffer server gerelayed bekommen
+            - name: *String* - die namen query
 
 - Level 1 (DIRECTED, im inner Objekt)
     - type: HEAL/MESSAGE - Die art der Directed Nachricht
