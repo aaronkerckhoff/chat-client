@@ -38,9 +38,9 @@ class ClientState:
     
     def send_message(self, chat: public_key.PublicKey, message: str):
         message_bytes = message.encode("utf-8")
-        hash = crypto.hash(message_bytes)
+        hash = crypto.get_sha256_hash(message_bytes)
         encrypted = crypto.aes_encrypt(self.chats[chat].symetric_key, message_bytes)
-        message_packet = packet_creator.create_direct_message(chat, encrypted)
+        message_packet = packet_creator.create_direct_message(chat, encrypted, base64.b64encode(hash).decode("utf-8"))
         self.client_socket.send(message_packet)
     
     def broadcast_self(self):

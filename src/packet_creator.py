@@ -63,14 +63,14 @@ def create_wants_name_message(name: str):
     return as_bytes(body)
 
 
-def create_direct_message(receiver : str):
+def create_directed_message(receiver : str):
     body = create_body("DIRECTED")
     body["receiver"] = receiver
     return body
 
 
 def create_direct_message(receiver, message: bytes, hash: bytes, sender_pub_key: public_key.PublicKey):
-    body = create_direct_message(receiver)
+    body = create_directed_message(receiver)
     body["inner"] = {
         "data": base64.b64encode(message),
         "hash": base64.b64encode(hash),
@@ -79,8 +79,8 @@ def create_direct_message(receiver, message: bytes, hash: bytes, sender_pub_key:
     return body
 
 
-def create_exchange_message(key: str, sender: str, sig: str, receiver: str):#
-    body = create_direct_message(receiver)
+def create_exchange_message(key: str, sender: str, sig: str, receiver: str):
+    body = create_directed_message(receiver)
     body["inner"] = {
         "sym_key": key,
         "sender": sender,

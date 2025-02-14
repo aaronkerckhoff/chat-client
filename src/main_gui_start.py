@@ -108,7 +108,7 @@ class WorkerThread(threading.Thread):
         running_secs = 0
         while self.running:
             self.task()
-            if running_secs % 50 == 0:
+            if running_secs % 5 == 0:
                 self.client.broadcast_self()
             running_secs += 1
             time.sleep(1)  
