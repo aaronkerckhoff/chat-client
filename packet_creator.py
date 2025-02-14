@@ -9,5 +9,5 @@ def create_head() -> io.BytesIO:
     stream.write(magic_number.to_bytes(1))
     stream.write(packet_parser.current_protocol_version.to_bytes(1))
     client_specifics = 0
-    stream.write(client_specifics.to_bytes(2, byteorder="litter"))
+    stream.write(client_specifics.to_bytes(2, byteorder="little"))
     return stream
