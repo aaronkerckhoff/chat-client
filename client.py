@@ -23,14 +23,14 @@ class Client:
             raise Exception(f"Error: {e}")
 
 
-IP = '192.168.176.250'
-#IP = '192.168.176.160'
+#IP = '192.168.176.250'
+IP = '192.168.176.160'
 PORT = 12345
 
 def runClient():
     client = Client(IP, PORT)
 
-    client.send('Hallo\n')
+    client.send('0b' +format(69, '08b') + format(0, '07b') + format(0, '015b') + '{"from_buf": false}' + '\n')
 
     print(client.listen())
 

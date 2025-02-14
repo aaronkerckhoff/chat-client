@@ -33,46 +33,43 @@ class Buffer:
         self.q[r].put(data)
 
 
-IP = '192.168.176.250'
+#IP = '192.168.176.250'
+IP = '192.168.176.160'
 PORT = 12345
 
 magicNumber = 69
 
-time = 60*5
+time = 60
 
 def formatData(data, magicNumber: int):
-    stream = io.BytesIO(data)
-
-    stream.seek(0)
-    version = stream.read(8)
+    version = int(data[2:10], 2)
 
     if not version == magicNumber:
-        raise Exception("Wrong Version: {version}")
+        raise Exception(f"Wrong Version: {version}")
     
-    stream.seek(8)
-    protocol = stream.read(10)
+    protocol = int(data[10:18], 2)
 
     if not protocol == 0:
-        raise Exception("Wrong Protocol Version: {version}")
+        raise Exception(f"Wrong Protocol Version: {version}")
     
-    stream.seek(16)
-    cversion = stream.read(15)
+    cversion = int(data[19:31], 2)
 
     if not cversion == 0:
-        raise Exception("Wrong Client-spesific Version: {version}")
+        raise Exception(f"Wrong Client-spesific Version: {version}")
     
-    stream.seek(32)
-    sdata = stream.read()
+    sdata = data[32:]
 
 
 def runBuffer():
     buffer = Buffer(IP, PORT)
 
-    for i in range(time):
-        data = buffer.listen()
-        print(f"Received from server: {data}", end="")
-        buffer.enqueue('t', data)
-        sleep(1)
+    data = buffer.listen()
+
+    formatData(data, 69)
+
+    print(f"Received from server: {data}", end="")
+    buffer.enqueue('t', data)
+    sleep(1)
 
     buffer.socket.close()
 
