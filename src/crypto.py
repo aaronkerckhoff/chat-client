@@ -134,3 +134,12 @@ def aes_encrypt(key: bytes, plaintext: bytes, associated_data: bytes) -> dict:
     nonce = os.urandom(12)
     ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data)
     return {"nonce": nonce, "ciphertext": ciphertext}
+
+
+def aes_decrypt(key: bytes, nonce: bytes, ciphertext: bytes, associated_data; bytes) -> bytes:
+    """
+    Decrypt ciphertext using AES-GCM.
+    """
+    aesgcm = AESGCM(key)
+    plaintext = aesgcm.decrypt(nonce, ciphertext, associated_data)
+    return plaintext
