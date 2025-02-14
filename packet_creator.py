@@ -11,3 +11,15 @@ def create_head() -> io.BytesIO:
     client_specifics = 0
     stream.write(client_specifics.to_bytes(2, byteorder="little"))
     return stream
+
+def create_body(message_type):
+    body = {
+        "from_buf" : False,
+        "type" : message_type
+    }
+    return body
+def create_direct_message():
+    body = create_body("DIRECTED")
+    body["receiver"] = 
+    
+
