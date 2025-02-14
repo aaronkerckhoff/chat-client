@@ -29,7 +29,6 @@ class Client:
     def dc(self):
         self.socket.close()
 
-
 IP = '192.168.176.250'
 PORT = 12345
 
