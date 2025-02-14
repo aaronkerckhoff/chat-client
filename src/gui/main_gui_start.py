@@ -121,6 +121,10 @@ class ChatApp(QWidget):
         self.init_ui()
         self.add_test_messages()  # Add some test messages to verify the functionality
         
+    def init_web_client(self):
+        print("Starting Web Client Connection...")
+    
+
     def load_username(self):
         """Loads the username from the user.txt JSON file."""
         try:
