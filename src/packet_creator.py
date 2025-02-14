@@ -2,6 +2,8 @@
 import io
 import json
 import packet_parser
+import base64
+import public_key
 
 def create_head() -> io.BytesIO:
     stream = io.BytesIO()
@@ -60,9 +62,19 @@ def create_direct_message(receiver : str):
     body = create_body("DIRECTED")
     body["receiver"] = receiver
     return body
-def create_direct_content_message(receiver, message_content):
+
+def create_direct_message(receiver, message_content) -> bytes:
     body = create_direct_message(receiver)
     body["content"] = message_content
+    return as_bytes(body)
+
+def create_direct_message(receiver, message: bytes, hash: bytes, sender_pub_key: public_key.PublicKey):
+    body = create_direct_message(receiver)
+    body["inner"] = {
+        "data": base64.b64encode(message),
+        "hash": base64.b64encode(hash),
+        "sender": sender_pub_key.as_base64_string()
+    }
     return body
 
 

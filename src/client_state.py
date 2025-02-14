@@ -1,6 +1,10 @@
 import public_key
 import signature
 import crypto
+import client_socket
+import packet_parser
+import packet_creator
+
 class ChatState:
     def __init__(self, symetric_key: bytes, display_name: str, public_key: public_key.PublicKey):
         self.symetric_key = symetric_key
@@ -15,15 +19,38 @@ class ChatState:
         if received_hash == decrypted_hash:
             return decrypted_message.decode("utf-8")
 
-        
+IP = '192.168.176.250'
+PORT = 12345
         
 class ClientState:
 
-    def __init__(self, pub_key: public_key.PublicKey, priv_key):
+    def __init__(self, pub_key: public_key.PublicKey, priv_key, display_name: str):
         self.chats: dict[public_key.PublicKey, ChatState] = {}
         self.public_key = pub_key
         self.private_key = priv_key
+        self.client_socket = client_socket.ClientSocket((IP, PORT))
+        self.display_name = display_name
         
+    def update(self):
+        while True:
+            message = self.client_socket.receive_message()
+            if not message:
+                break
+            packet_parser.parse_packet(message, self)
+    
+    def send_message(self, chat: public_key.PublicKey, message: str):
+        message_bytes = message.encode("utf-8")
+        hash = crypto.hash(message_bytes)
+        encrypted = crypto.aes_encrypt(self.chats[chat].symetric_key, message_bytes)
+        message_packet = packet_creator.create_direct_message(chat, encrypted)
+        self.client_socket.send(message_packet)
+    
+    def broadcast_self(self):
+        signed_name = signature.sign_with(self.private_key, self.display_name.encode("utf-8"))
+        exists_message = packet_creator.create_exists_message(self.public_key.as_base64_string(), self.display_name, signed_name.to_base64())
+        self.client_socket.send(exists_message)
+
+            
 
     def get_public_key(self) -> public_key.PublicKey:
         """Returns the global public key of this client"""
