@@ -42,22 +42,36 @@ magicNumber = 69
 time = 60
 
 def formatData(data, magicNumber: int):
-    version = int(data[2:10], 2)
+    format = True
 
-    if not version == magicNumber:
-        raise Exception(f"Wrong Version: {version}")
+    try:
+        version = int(data[2:10], 2)
+        if not version == magicNumber:
+            raise Exception(f"Wrong Version: {version}")
+    except:
+        print("Wrong Format")
+        format = False
     
-    protocol = int(data[10:18], 2)
+    try:
+        protocol = int(data[10:18], 2)
 
-    if not protocol == 0:
-        raise Exception(f"Wrong Protocol Version: {version}")
-    
-    cversion = int(data[19:31], 2)
+        if not protocol == 0:
+            raise Exception(f"Wrong Protocol Version: {version}")
+    except:
+        print("Wrong Format")
+        format = False
 
-    if not cversion == 0:
-        raise Exception(f"Wrong Client-spesific Version: {version}")
-    
-    return json.loads(data[32:]), version, protocol, cversion
+    try:
+        cversion = int(data[19:31], 2)
+
+        if not cversion == 0:
+            raise Exception(f"Wrong Client-spesific Version: {version}")
+    except:
+        print("Wrong Format")
+        format = False
+
+    if not format == False:
+        return json.loads(data[32:]), version, protocol, cversion
 
 
 def runBuffer():
@@ -68,7 +82,9 @@ def runBuffer():
         sdata, v, p, cv = formatData(data, 69)
         if sdata["inner"]["type"] == "WANTS":
             sleep(1)
-            buffer.send('0b' +format(69, '08b') + format(0, '07b') + format(0, '015b') + '{"from_buf": true, "type": "BROADCAST", "receiver": 1234567890, "inner": {"type": "EXISTS"}}' + '\n')
+            if "receiver" in buffer.q:
+                while not buffer.q.empty():
+                    buffer.send('0b' +format(69, '08b') + format(0, '07b') + format(0, '015b') + '{"from_buf": true, "type": "DIRECTED", "receiver": 1234567890, "inner": {"type": "MESSAGE", "data": "' + buffer.q.get()["inner"]["data"] + '", "hash": "' + buffer.q.get()["inner"]["hash"] + '", "sender": "987654321"}}' + '\n')
         elif sdata['from_buf'] == False:
             buffer.enqueue(sdata["receiver"], data)
             print(f"Received: {data}", end="")
