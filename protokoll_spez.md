@@ -41,8 +41,6 @@ Wir benutzen verschiedene Level von Abstraktionen von den JSON Objekten.
             - hash: *Hash* - ein hash der entschlüsselten nachricht, um zu überprüfen, ob der schlüssel valid ist.
             - sender: *Public Key* - The global public key of the sender
 
-            
-
 
 
 ### Typen
