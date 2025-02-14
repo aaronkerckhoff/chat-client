@@ -111,7 +111,7 @@ class WorkerThread(threading.Thread):
     def stop(self):
         self.running = False
 
-    def start_task(self, client):
+    def start_task(self):
         """Starts the task in a separate thread"""
         self.running = True
         if not self.is_alive():
@@ -187,7 +187,7 @@ class ChatApp(QWidget):
         print("Starting Web Client Connection...")
         #self.web_client = Client("192.168.176.160", 12345, on_message_received=self.msg_recieved)
         # Init client_state here
-        self.client_backend = new_client(self.username, self.receive_message)
+        self.client_backend = new_client(self.username, self.msg_recieved)
         #init poller
         self.poller_thread = WorkerThread(self.client_backend)
         self.poller_thread.start_task()
