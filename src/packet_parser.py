@@ -73,7 +73,8 @@ def execute_directed_message(dic: dict, client: ClientState):
             sender = public_key.from_base64_string(dic["sender"])
             data = base64.b64decode(dic["data"])
             hash = base64.b64decode(dic["hash"])
-            client.received_message(sender, data, hash)
+            nonce = base64.b64decode(dic["nonce"])
+            client.received_message(sender, data, hash, nonce)
 
 
 

@@ -11,8 +11,8 @@ class ChatState:
         self.display_name = display_name,
         self.public_key = public_key,
 
-    def decrypt_verify_chat(self, message: bytes, decrypted_hash: bytes) -> str | None:
-        decrypted_message = crypto.aes_decrypt(self.symetric_key, message)
+    def decrypt_verify_chat(self, message: bytes, decrypted_hash: bytes, nonce: bytes) -> str | None:
+        decrypted_message = crypto.aes_decrypt(self.symetric_key, nonce, message, None)
         if decrypted_message == None:
             return None
         received_hash = crypto.get_sha256_hash(decrypted_message)
@@ -39,8 +39,8 @@ class ClientState:
     def send_message(self, chat: public_key.PublicKey, message: str):
         message_bytes = message.encode("utf-8")
         hash = crypto.get_sha256_hash(message_bytes)
-        encrypted = crypto.aes_encrypt(self.chats[chat].symetric_key, message_bytes)
-        message_packet = packet_creator.create_direct_message(chat, encrypted, base64.b64encode(hash).decode("utf-8"))
+        (nonce, encrypted) = crypto.aes_encrypt(self.chats[chat].symetric_key, message_bytes, None)
+        message_packet = packet_creator.create_direct_message(chat, encrypted, base64.b64encode(hash).decode("utf-8"), self.public_key, nonce)
         self.client_socket.send(message_packet)
     
     def broadcast_self(self):
@@ -76,7 +76,7 @@ class ClientState:
         self.chats[receiver] = ChatState(random_key, self.discovered_clients[receiver], receiver)            
 
 
-    def received_message(self, sender: public_key.PublicKey, encrypted_message_bytes: bytes, decrypted_hash: bytes):
+    def received_message(self, sender: public_key.PublicKey, encrypted_message_bytes: bytes, decrypted_hash: bytes, nonce: bytes):
         """The client has received a message that is still encrypted.
         We need to check whether the decrypted message hash matches the decrypted hash, the other client might
         have been hacked otherwise :O
@@ -84,7 +84,7 @@ class ClientState:
         Todo: We don't check yet whether the message has actually come from the pretended sender, enabeling people to send fake packets making this client think the other party has been hacked."""
         if not sender in self.chats:
             return #We dont know them, maybe log it?
-        return_msg = self.chats[sender].decrypt_verify_chat(encrypted_message_bytes, decrypted_hash)
+        return_msg = self.chats[sender].decrypt_verify_chat(encrypted_message_bytes, decrypted_has5h, nonce)
         
         if return_msg:
             self.msg_recieved_callback(return_msg)

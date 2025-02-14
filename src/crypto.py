@@ -127,14 +127,14 @@ def generate_aes_key() -> bytes:
     return os.urandom(32)
 
 
-def aes_encrypt(key: bytes, plaintext: bytes, associated_data: bytes) -> dict:
+def aes_encrypt(key: bytes, plaintext: bytes, associated_data: bytes | None) -> bytes | bytes:
     """
     Encrypts plaintext using AES-GCM.
     """
     aesgcm = AESGCM(key)
     nonce = os.urandom(12)
     ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data)
-    return {"nonce": nonce, "ciphertext": ciphertext}
+    return (nonce, ciphertext)
 
 
 def aes_decrypt(

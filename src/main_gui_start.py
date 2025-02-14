@@ -419,7 +419,7 @@ class ChatApp(QWidget):
         if not self.current_chat in self.client_backend.chats:
             self.client_backend.send_shared_secret(self.current_chat)
         try:
-            self.client_backend.send_message(self.client_backend.chats[self.current_chat], text) # Need \n escape in order to be able to send message
+            self.client_backend.send_message(self.current_chat, text) # Need \n escape in order to be able to send message
             print("Message sent to web client")
         except Exception as e:
             print(f"CRITICAL: The message wasnt able to be sent: {e}")
