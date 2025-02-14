@@ -1,0 +1,8 @@
+cffi==1.17.1
+cryptography==44.0.1
+iniconfig==2.0.0
+packaging==24.2
+pluggy==1.5.0
+pycparser==2.22
+pytest==8.3.4
+python-dotenv==1.0.1
