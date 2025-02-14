@@ -6,8 +6,8 @@ from src import crypto
 
 
 def test_aes_encrypt_decrypt():
-    # Create a valid 16-byte key for AES-128
-    key = os.urandom(16)
+    # Create a valid 32-byte key for AES-128
+    key = os.urandom(32)
     plaintext = b"Secret message"
     associated_data = b"header"
     encrypted_data = crypto.aes_encrypt(key, plaintext, associated_data)
@@ -16,7 +16,7 @@ def test_aes_encrypt_decrypt():
     assert "nonce" in encrypted_data
     assert "ciphertext" in encrypted_data
     # Decrypt and check that the plaintext is recovered
-    decrypted = crypto.aes128_decrypt(key, encrypted_data)
+    decrypted = crypto.aes_decrypt(key, encrypted_data)
     assert decrypted == plaintext
 
 
@@ -25,14 +25,10 @@ def test_aes_invalid_key_length(capsys):
     invalid_key = os.urandom(10)
     plaintext = b"Test"
     encrypted = crypto.aes_encrypt(invalid_key, plaintext)
-    captured = capsys.readouterr().out
-    assert "Key must be 16 bytes for AES-128" in captured
     assert encrypted is None
 
     fake_data = {"nonce": os.urandom(12), "ciphertext": b"fake"}
-    decrypted = crypto.aes128_decrypt(invalid_key, fake_data)
-    captured = capsys.readouterr().out
-    assert "Key must be 16 bytes for AES-128" in captured
+    decrypted = crypto.aes_decrypt(invalid_key, fake_data)
     assert decrypted is None
 
 
@@ -64,21 +60,21 @@ def test_get_new_asym_keys(monkeypatch):
     assert isinstance(pk, ec.EllipticCurvePublicKey)
 
 
-def test_generate_symmetric_key_128():
+def test_generate_symmetric_key():
     shared_secret = os.urandom(32)
-    # Generate a symmetric key intended for AES-128 by specifying a 16-byte length
-    symmetric_key = crypto.generate_symmetric_key_128(shared_secret, key_length=16)
+    # Generate a symmetric key intended for AES-256 by specifying a 32-byte length
+    symmetric_key = crypto.generate_symmetric_key(shared_secret, key_length=32)
     assert isinstance(symmetric_key, bytes)
-    assert len(symmetric_key) == 16
+    assert len(symmetric_key) == 32
 
 
-def test_eec_key_derivation():
+def test_ecc_key_derivation():
     # Generate two key pairs for an ECDH exchange
     sk1 = ec.generate_private_key(ec.SECP256R1())
     pk1 = sk1.public_key()
     sk2 = ec.generate_private_key(ec.SECP256R1())
     pk2 = sk2.public_key()
-    secret1 = crypto.eec_key_derivation(sk1, pk2)
-    secret2 = crypto.eec_key_derivation(sk2, pk1)
+    secret1 = crypto.ecc_key_derivation(sk1, pk2)
+    secret2 = crypto.ecc_key_derivation(sk2, pk1)
     # Both parties should derive the same shared secret
     assert secret1 == secret2

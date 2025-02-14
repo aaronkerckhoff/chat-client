@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from dotenv import load_dotenv, set_key
 import base64
-from logger_utils import setup_logger
+from src.logger_utils import setup_logger
 
 logger = setup_logger("cryptography", "cryptography.log")
 
@@ -179,9 +179,9 @@ def key_derivation(pk):
 
 
 # Generate or load keys
-#sk, pk = get_new_asym_keys()
-#peer_sk, peer_pk = get_new_asym_keys()
-'''
+# sk, pk = get_new_asym_keys()
+# peer_sk, peer_pk = get_new_asym_keys()
+"""
 print(sk.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
@@ -206,4 +206,4 @@ encr = aes_encrypt(own_sym_key, message)
 print(f"encrypted message: {encr}")
 decr = aes_decrypt(peer_sym_key, encr)
 print(f"decrypted:{decr}")
-'''
+"""
