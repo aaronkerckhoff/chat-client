@@ -136,7 +136,9 @@ def aes_encrypt(key: bytes, plaintext: bytes, associated_data: bytes) -> dict:
     return {"nonce": nonce, "ciphertext": ciphertext}
 
 
-def aes_decrypt(key: bytes, nonce: bytes, ciphertext: bytes, associated_data; bytes) -> bytes:
+def aes_decrypt(
+    key: bytes, nonce: bytes, ciphertext: bytes, associated_data: bytes
+) -> bytes:
     """
     Decrypt ciphertext using AES-GCM.
     """
