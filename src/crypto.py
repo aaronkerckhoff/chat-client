@@ -5,6 +5,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from dotenv import load_dotenv, set_key
+from logger_utils import setup_logger
+
+logger = setup_logger("cryptography", "cryptography.log")
 
 
 def generate_symmetric_key(shared_secret, key_length=32):
@@ -19,7 +22,7 @@ def generate_symmetric_key(shared_secret, key_length=32):
 
 
 # Load environment variables from .env file
-#load_dotenv()
+# load_dotenv()
 
 
 def save_key_to_env(key, key_name):
@@ -87,7 +90,7 @@ def aes_encrypt(key, plaintext, associated_data=None):
     Encrypt plaintext using AES-256-GCM.
     """
     if len(key) != 32:
-        print("Key must be 32 bytes for AES-256")
+        logger.error("Key must be 32 bytes for AES-256")
         return
 
     aesgcm = AESGCM(key)
@@ -106,7 +109,7 @@ def aes_decrypt(key, encrypted_data):
     Decrypt ciphertext using AES-256-GCM.
     """
     if len(key) != 32:
-        print("Key must be 32 bytes for AES-256")
+        logger.error("Key must be 32 bytes for AES-128")
         return
     nonce = encrypted_data["nonce"]
     ciphertext = encrypted_data["ciphertext"]
@@ -116,7 +119,6 @@ def aes_decrypt(key, encrypted_data):
     plaintext = aesgcm.decrypt(nonce, ciphertext, associated_data)
 
     return plaintext
-
 
 
 def ecc_key_derivation(sk, peer_pk):
@@ -176,7 +178,7 @@ def key_derivation(pk):
 # Generate or load keys
 sk, pk = get_new_asym_keys()
 peer_sk, peer_pk = get_new_asym_keys()
-'''
+"""
 print(sk.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
@@ -201,4 +203,4 @@ encr = aes_encrypt(own_sym_key, message)
 print(f"encrypted message: {encr}")
 decr = aes128_decrypt(peer_sym_key, encr)
 print(f"decrypted:{decr}")
-'''
+"""
