@@ -29,8 +29,14 @@ PORT = 12345
 
 def runClient():
     client = Client(IP, PORT)
+    client.send('01000101000000000000000000000000' + '{"from_buf": false, "type": "DIRECTED", "receiver": 1234567890, "inner": {"type": "MESSAGE", "data": "test", "hash": "h", "sender": "1234567890"}}' + '\n')
 
-    client.send('0b' +format(69, '08b') + format(0, '07b') + format(0, '015b') + '{"from_buf": false, "type": "BROADCAST", "receiver": 1234567890, "inner": {"type": "WANTS"}}' + '\n')
+    client.send('01000101000000000000000000000000' + '{"from_buf": false, "type": "BROADCAST", "receiver": 1234567890, "inner": {"type": "WANTS"}}' + '\n')
+
+    print(client.listen())
+
+    sleep(1)
+
 
     print(client.listen())
     print(client.listen())
