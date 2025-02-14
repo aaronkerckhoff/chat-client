@@ -147,7 +147,8 @@ def aes_decrypt(
     plaintext = aesgcm.decrypt(nonce, ciphertext, associated_data)
     return plaintext
 
-def get_sha256_hash(message : bytes) -> bytes:
+
+def get_sha256_hash(message: bytes) -> bytes:
     m = hashlib.sha256()
     m.update(message)
-    return m.digest
+    return m.digest()
