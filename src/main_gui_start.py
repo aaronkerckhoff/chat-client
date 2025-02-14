@@ -157,7 +157,11 @@ class ChatApp(QWidget):
         super().__init__()
         
         # -------------------- INIT --------------------
-        self.appdata_path = Path(os.getenv("APPDATA"))  # Convert to Path object
+
+        if os.name == "WINDOWS":
+            self.appdata_path = Path(os.getenv("APPDATA"))  # Convert to Path object
+        else:
+            self.appdata_path = Path(os.getenv("HOME")) # Assume linux
         print("AppData path: " + str(self.appdata_path))  # Print Save Dir
         
         self.file_path = self.appdata_path / "Chat" / "user.txt"  # Correct path creation
