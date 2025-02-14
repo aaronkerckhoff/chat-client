@@ -1,4 +1,3 @@
-import io
 import json
 import socket
 from queue import Queue
@@ -42,35 +41,20 @@ magicNumber = 69
 time = 60
 
 def formatData(data, magicNumber: int):
-    format = True
-
     try:
         version = int(data[:8], 2)
+        protocol = int(data[8:16], 2)
+        cversion = int(data[16:32], 2)
         if not version == magicNumber:
             raise Exception(f"Wrong Version: {version}")
-    except:
-        print("Wrong Format")
-        format = False
-    
-    try:
-        protocol = int(data[8:16], 2)
         if not protocol == 0:
             raise Exception(f"Wrong Protocol Version: {version}")
-    except:
-        print("Wrong Format")
-        format = False
-
-    try:
-        cversion = int(data[16:32], 2)
-        
         if not cversion == 0:
             raise Exception(f"Wrong Client-spesific Version: {version}")
+        return json.loads(data[32:-2]), version, protocol, cversion
     except:
         print("Wrong Format")
-        format = False
-
-    if not format == False:
-        return json.loads(data[32:-2]), version, protocol, cversion
+        return None
 
 
 def runBuffer():
@@ -79,22 +63,21 @@ def runBuffer():
     for _ in range(time):
         data = None
         data = buffer.listen()
-        #try:
-        sdata, v, p, cv = formatData(data, 69)
-        if sdata["from_buf"] == False and sdata["inner"]["type"] == "WANTS":
-            if sdata["receiver"] in buffer.q:
-                while not buffer.q[sdata["receiver"]].empty():
-                    print(buffer.q[sdata["receiver"]].get()["inner"]["data"])
-                    buffer.send('01000101000000000000000000000000' + '{"from_buf": true, "type": "DIRECTED", "receiver": 1234567890, "inner": {"type": "MESSAGE", "data": "' + buffer.q[sdata["receiver"]].get()["inner"]["data"] + '", "hash": "' + buffer.q[sdata["receiver"]].get()["inner"]["hash"] + '", "sender": "987654321"}}' + '\n')
-        elif sdata["from_buf"] == False and sdata["inner"]["type"] == "MESSAGE":
-            if sdata["receiver"] not in buffer.q:
-                buffer.q[sdata["receiver"]] = Queue()
-            buffer.q[sdata["receiver"]].put(sdata["receiver"], data)
-            print(f"Received and Buffered: {data}", end="")
-        sleep(1)
+        try:
+            sdata, v, p, cv = formatData(data, 69)
+            if sdata["from_buf"] == False and sdata["inner"]["type"] == "WANTS":
+                if sdata["receiver"] in buffer.q:
+                    while not buffer.q[sdata["receiver"]].empty():
+                        buffer.send('01000101000000000000000000000000' + '{"from_buf": true, "type": "DIRECTED", "receiver": 1234567890, "inner": {"type": "MESSAGE", "data": "' + buffer.q[sdata["receiver"]].get()["inner"]["data"] + '", "hash": "' + buffer.q[sdata["receiver"]].get()["inner"]["hash"] + '", "sender": "987654321"}}' + '\n')
+            elif sdata["from_buf"] == False and sdata["inner"]["type"] == "MESSAGE":
+                if sdata["receiver"] not in buffer.q:
+                    buffer.q[sdata["receiver"]] = Queue()
+                buffer.q[sdata["receiver"]].put(sdata["receiver"], data)
+                print(f"Received and Buffered: {data}", end="")
+            sleep(1)
 
-        #except:
-        #    print("Wrong Format")
+        except:
+            print("Wrong Format")
 
     buffer.socket.close()
 
