@@ -24,12 +24,13 @@ class Client:
 
 
 IP = '192.168.176.250'
+#IP = '192.168.176.160'
 PORT = 12345
 
 def runClient():
     client = Client(IP, PORT)
 
-    client.send('test\n')
+    client.send('Hallo\n')
 
     print(client.listen())
 

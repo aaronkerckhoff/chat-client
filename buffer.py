@@ -30,6 +30,11 @@ class Buffer:
             self.q[r] = Queue() 
         self.q[r].put(data)
 
+    def checkVersion(self, data):
+        if not(data[:10] == str(bin(69))):
+            raise Exception("Wrong Version ({data[:8]})")
+
+
 IP = '192.168.176.250'
 PORT = 12345
 
