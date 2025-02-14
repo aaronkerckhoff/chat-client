@@ -62,6 +62,7 @@ def create_direct_message(receiver : str):
 def create_direct_content_message(receiver, message_content):
     body = create_direct_message(receiver)
     body["content"] = message_content
+<<<<<<< Updated upstream
     return body
 
 
@@ -69,3 +70,6 @@ def create_direct_content_message(receiver, message_content):
 
     
 
+=======
+    return body
+>>>>>>> Stashed changes
