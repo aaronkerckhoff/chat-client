@@ -15,6 +15,7 @@ import threading
 import io
 import time
 
+from blocking import check_blocked, block, unblock
 from client_state import ClientState, new_client, ChatState
 
 #-------------------- CLASSES --------------------
@@ -217,7 +218,17 @@ class ChatApp(QWidget):
             self.username = "Username Key not Found!"
             sys.exit()
 
-        print("Found Username: " + self.username)  
+        print("Found Username: " + self.username)
+
+    def on_top_right_button_click(self):
+        if check_blocked(69):
+            print("UNBLOCKING")
+            unblock(69)
+            self.top_right_button.setText("FREE✅")
+        else:
+            print("BLOCKING")
+            block(69)
+            self.top_right_button.setText("BLOCKED🚫")  
 
     def init_ui(self):
         """Initializes the GUI components."""
@@ -335,6 +346,24 @@ class ChatApp(QWidget):
         chat_layout.addLayout(self.message_area_layout, 3)  # Chat area gets more space
 
         self.layout.addLayout(chat_layout, stretch=5)
+
+        #----------------------BLOCKIN BUTTON ---------------------
+
+        # Create a top bar layout for the button
+        self.top_bar_layout = QHBoxLayout()
+
+        # Create the button
+        self.top_right_button = QPushButton("BLOCKED🚫" if check_blocked(69) else "FREE✅", self)  # Settings or any function
+        self.top_right_button.setFixedSize(100, 30)  # Set size
+        self.top_right_button.clicked.connect(self.on_top_right_button_click)  # Connect to function
+
+        # Align the button to the right
+        self.top_bar_layout.addStretch(1)  # Push button to the right
+        self.top_bar_layout.addWidget(self.top_right_button)  # Add button to layout
+
+        # Add the top bar layout to the main layout
+        self.layout.insertLayout(2, self.top_bar_layout)  # Insert at the top
+
 
         # -------------------- BOTTOM INPUT BAR --------------------
         self.bottom_input_layout = QHBoxLayout()
