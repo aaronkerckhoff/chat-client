@@ -38,4 +38,16 @@ def generate_rsa_key_pair():
             )
         )
 
-    logger.log("RSA key pair generated and saved.")
+    logger.info("RSA key pair generated and saved.")
+
+
+def load_private_key():
+    with open(PRIVATE_KEY_FILE, "rb") as file:
+        private_key = serialization.load_pem_private_key(file.read(), password=None)
+    return private_key
+
+
+def load_public_key():
+    with open(PUBLIC_KEY_FILE, "rb") as file:
+        public_key = serialization.load_pem_public_key(file.read())
+    return public_key
