@@ -57,7 +57,7 @@ def formatData(data, magicNumber: int):
     if not cversion == 0:
         raise Exception(f"Wrong Client-spesific Version: {version}")
     
-    sdata = data[32:]
+    return json.loads(data[32:]), version, protocol, cversion
 
 
 def runBuffer():
@@ -65,10 +65,13 @@ def runBuffer():
 
     data = buffer.listen()
 
-    formatData(data, 69)
+    sdata, v, p, cv = formatData(data, 69)
+
+    buffer.enqueue(sdata["receiver"], data)
 
     print(f"Received from server: {data}", end="")
-    buffer.enqueue('t', data)
+
+
     sleep(1)
 
     buffer.socket.close()
