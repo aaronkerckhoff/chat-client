@@ -2,6 +2,9 @@ import public_key
 import signature
 
 class ClientState:
+    def get_public_key(self) -> public_key.PublicKey:
+        """Returns the global public key of this client"""
+        pass
     def received_message(self, sender: public_key.PublicKey, encrypted_message_bytes: bytes, decrypted_hash: bytes):
         """The client has received a message that is still encrypted.
         We need to check whether the decrypted message hash matches the decrypted hash, the other client might
