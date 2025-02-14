@@ -7,7 +7,7 @@ class Signature:
             return
         self.signature = sig
 
-    def verify(self, pk, message):
+    def verify(self, pk, message) -> bool:
         return verify_asym_sig(pk, message, self.signature)
 
 
