@@ -60,6 +60,9 @@ def formatData(data, magicNumber: int):
 
     if not cversion == 0:
         raise Exception("Wrong Client-spesific Version: {version}")
+    
+    stream.seek(32)
+    sdata = stream.read()
 
 
 def runBuffer():
