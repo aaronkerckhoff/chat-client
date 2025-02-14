@@ -4,6 +4,9 @@ from PyQt6.QtCore import Qt, QEvent, QObject
 from pathlib import Path
 from web_client.client import Client
 
+from client_state import ClientState, new_client
+
+
 import sys
 import os
 import json
@@ -156,8 +159,9 @@ class ChatApp(QWidget):
         except (json.JSONDecodeError, FileNotFoundError):
             self.username = "Username Key not Found!"
             sys.exit()
-        
+
         print("Found Username: " + self.username)
+        self.client_backend = new_client(self.username)
     
     def init_ui(self):
         """Initializes the GUI components."""

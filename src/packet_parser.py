@@ -101,4 +101,6 @@ def parse_packet(io_stream: io.BytesIO, client: ClientState) -> None | BaseMessa
     body = io_stream.read()#.decode(str="utf-8")
     body_object = json.loads(body)
     execute_message(body_object, client)
-    
+
+
+

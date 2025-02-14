@@ -3,6 +3,7 @@ import signature
 import crypto
 import client_socket
 import packet_creator
+import base64
 
 class ChatState:
     def __init__(self, symetric_key: bytes, display_name: str, public_key: public_key.PublicKey):
@@ -24,7 +25,8 @@ PORT = 12345
 class ClientState:
 
     def __init__(self, pub_key: public_key.PublicKey, priv_key, display_name: str):
-        self.chats: dict[public_key.PublicKey, ChatState] = {}
+        self.chats: dict[public_key.PublicKey, ChatState] = {},
+        self.discovered_clients = dict()
         self.public_key = pub_key
         self.private_key = priv_key
         self.client_socket = client_socket.ClientSocket(IP, PORT)
@@ -57,6 +59,19 @@ class ClientState:
             return
         self.chats[sender] = sym_key            
         pass
+
+    def send_shared_secret(self, receiver: public_key.PublicKey):
+        random_key = crypto.generate_aes_key()
+        signed_key = signature.sign_with(self.private_key, random_key)
+        encrypted_key = crypto.rsa_encrypt(self.public_key.inner, random_key)
+        message_pckt = packet_creator.create_exchange_message(
+            base64.b64encode(encrypted_key).decode("utf-8"),
+            self.public_key.as_base64_string(),
+            signed_key.to_base64(),
+            receiver.as_base64_string()
+        )
+        self.client_socket.send(message_pckt)
+
     def received_message(self, sender: public_key.PublicKey, encrypted_message_bytes: bytes, decrypted_hash: bytes):
         """The client has received a message that is still encrypted.
         We need to check whether the decrypted message hash matches the decrypted hash, the other client might
@@ -83,7 +98,10 @@ class ClientState:
     def discovered_client(self, public_key: public_key.PublicKey, name: str, signature: signature.Signature):
         """Received a broadcast message where a connected client announces themselves. 
         Their name has been signed with the signature."""
-        pass
+        if not signature.valid_for(public_key, name.encode("utf-8")):
+            print("Sig invalid")
+            return
+        self.discovered_clients[public_key] = name
     
 
 
