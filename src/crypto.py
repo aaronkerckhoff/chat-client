@@ -120,11 +120,11 @@ def aes128_decrypt(key, encrypted_data):
     return plaintext
 
 
-def eec_key_derivation(sk, peer_pk):
+
+def ecc_key_derivation(sk, peer_pk):
     """
     Generates a new shared secret and returns it
     """
-def ecc_key_derivation(sk, peer_pk):
     shared_secret = sk.exchange(ec.ECDH(), peer_pk)
     return shared_secret
 
