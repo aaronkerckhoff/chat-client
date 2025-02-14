@@ -61,6 +61,7 @@ class ClientState:
             return
         self.chats[sender] = ChatState(sym_key, self.discovered_clients[sender], sender)
         self.msg_recieved_callback("Chat was instanciated")            
+        print("Received shared secret")
         pass
 
     def send_shared_secret(self, receiver: public_key.PublicKey):
@@ -83,6 +84,8 @@ class ClientState:
         have been hacked otherwise :O
         
         Todo: We don't check yet whether the message has actually come from the pretended sender, enabeling people to send fake packets making this client think the other party has been hacked."""
+        print("Received message")
+
         if not sender in self.chats:
             return #We dont know them, maybe log it?
         return_msg = self.chats[sender].decrypt_verify_chat(encrypted_message_bytes, decrypted_hash, nonce)
@@ -114,8 +117,9 @@ class ClientState:
     
 
 
-def new_client(display_name: str, recieved_callback) -> ClientState:
-    crypto.generate_rsa_key_pair()
+def load_or_new_client(display_name: str, recieved_callback) -> ClientState:
+    if not crypto.keys_exist():
+        crypto.generate_rsa_key_pair()
     priv_key = crypto.load_private_key()
     pub_key = public_key.from_rsa(crypto.load_public_key())
     client = ClientState(pub_key, priv_key, display_name, recieved_callback)
