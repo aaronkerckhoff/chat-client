@@ -98,7 +98,7 @@ def aes_encrypt(key, plaintext, associated_data=None):
 
     aesgcm = AESGCM(key)
     nonce = os.urandom(12)
-    ciphertext = aesgcm.encrypt(nonce, plaintext.encode("UTF-8"), associated_data)
+    ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data)
 
     return {
         "nonce": nonce,
@@ -201,9 +201,9 @@ own_sym_key= generate_symmetric_key(own_secret)
 peer_sym_key = generate_symmetric_key(peer_secret)
 print(own_sym_key)
 print(peer_sym_key)
-message = "wir sind die besten"
+message = b"wir sind die besten"
 encr = aes_encrypt(own_sym_key, message)
 print(f"encrypted message: {encr}")
-decr = aes128_decrypt(peer_sym_key, encr)
+decr = aes_decrypt(peer_sym_key, encr)
 print(f"decrypted:{decr}")
 '''
