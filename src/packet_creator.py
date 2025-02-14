@@ -69,15 +69,15 @@ def create_directed_message(receiver : str):
     return body
 
 
-def create_direct_message(receiver, message: bytes, hash: str, sender_pub_key: public_key.PublicKey, nonce: str):
+def create_direct_message(receiver, message: bytes, hash: str, sender: str, nonce: str):
     body = create_directed_message(receiver)
     body["inner"] = {
         "data": base64.b64encode(message).decode("utf-8"),
         "hash": hash,
-        "sender": sender_pub_key.as_base64_string(),
-        "nonce": nonce
+        "sender": sender,
+        "nonce": base64.b64encode(nonce).decode("utf-8")
     }
-    return body
+    return as_bytes(body)
 
 
 def create_exchange_message(key: str, sender: str, sig: str, receiver: str):

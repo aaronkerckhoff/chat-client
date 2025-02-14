@@ -40,7 +40,7 @@ class ClientState:
         message_bytes = message.encode("utf-8")
         hash = crypto.get_sha256_hash(message_bytes)
         (nonce, encrypted) = crypto.aes_encrypt(self.chats[chat].symetric_key, message_bytes, None)
-        message_packet = packet_creator.create_direct_message(chat, encrypted, base64.b64encode(hash).decode("utf-8"), self.public_key, nonce)
+        message_packet = packet_creator.create_direct_message(chat.as_base64_string(), encrypted, base64.b64encode(hash).decode("utf-8"), self.public_key.as_base64_string(), nonce)
         self.client_socket.send(message_packet)
     
     def broadcast_self(self):
@@ -59,7 +59,8 @@ class ClientState:
         sym_key = crypto.rsa_decrypt(self.private_key, encrypted_shared_secret)
         if not shared_secret_signature.valid_for(sender, sym_key):
             return
-        self.chats[sender] = ChatState(sym_key, self.discovered_clients[sender], sender)            
+        self.chats[sender] = ChatState(sym_key, self.discovered_clients[sender], sender)
+        self.msg_recieved_callback("Chat was instanciated")            
         pass
 
     def send_shared_secret(self, receiver: public_key.PublicKey):
@@ -84,7 +85,7 @@ class ClientState:
         Todo: We don't check yet whether the message has actually come from the pretended sender, enabeling people to send fake packets making this client think the other party has been hacked."""
         if not sender in self.chats:
             return #We dont know them, maybe log it?
-        return_msg = self.chats[sender].decrypt_verify_chat(encrypted_message_bytes, decrypted_has5h, nonce)
+        return_msg = self.chats[sender].decrypt_verify_chat(encrypted_message_bytes, decrypted_hash, nonce)
         
         if return_msg:
             self.msg_recieved_callback(return_msg)
