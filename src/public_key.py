@@ -4,6 +4,8 @@ class PublicKey:
             return
         self.value = str
 
+    def as_base64_string(self) -> str:
+        pass
 
 def from_base64_string(str: str) -> PublicKey:
     return PublicKey(str)
