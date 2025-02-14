@@ -11,7 +11,6 @@ def generate_symmetric_key(shared_secret, key_length=32):
     """
     Generates a symmetric key using an initial shared secret and a key length
     """
-def generate_symmetric_key(shared_secret, key_length=32):
     derived_key = HKDF(
         algorithm=hashes.SHA256(), length=key_length, salt=None, info=b"handshake data"
     ).derive(shared_secret)
