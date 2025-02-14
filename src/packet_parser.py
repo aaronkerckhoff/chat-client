@@ -55,10 +55,18 @@ def execute_directed_message(dic: dict, client: ClientState):
     type = dic["type"]
     match type:
         case "HEAL":
+            if current_protocol_version < 1:
+                print("Client doesn't support version 1 protocol")
+                return None
             sender = public_key.from_base64_string(dic["sender"])
             new_key = base64.b64decode(dic["new_key"])
             sig = signature.from_base64_string(dic["sig"])
             client.received_healing(sender, new_key, sig)
+        case "EXCHANGE":
+            sym_key = base64.b64decode(dic["sym_key"])
+            sender = public_key.from_base64_string(dic["sender"])
+            sig = signature.from_base64_string(dic["sig"])
+            client.received_shared_secret(sender, sym_key, sig)
         case "MESSAGE":
             sender = public_key.from_base64_string(dic["sender"])
             data = base64.b64decode(dic["data"])

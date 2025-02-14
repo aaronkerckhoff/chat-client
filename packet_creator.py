@@ -55,6 +55,7 @@ def create_wants_name_message(name: str):
     }
     return as_bytes(body)
 
+
 def create_direct_message(receiver : str):
     body = create_body("DIRECTED")
     body["receiver"] = receiver
@@ -62,14 +63,14 @@ def create_direct_message(receiver : str):
 def create_direct_content_message(receiver, message_content):
     body = create_direct_message(receiver)
     body["content"] = message_content
-<<<<<<< Updated upstream
     return body
 
 
-
-
-    
-
-=======
-    return body
->>>>>>> Stashed changes
+def create_exchange_message(key: str, sender: str, sig: str, receiver: str):#
+    body = create_direct_message(receiver)
+    body["inner"] = {
+        "sym_key": key,
+        "sender": sender,
+        "sig": sig
+    }
+    return as_bytes(body)
