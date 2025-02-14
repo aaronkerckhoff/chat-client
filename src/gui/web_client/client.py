@@ -9,7 +9,7 @@ class Client:
     def send(self, message: str) -> None:
         try:
             print(f"Sending data... ")
-            self.socket.send(message.encode("utf-8"))
+            self.socket.send(message.encode('utf-8'))
             print("Data sent!")
         except Exception as e:
             print(f"Fialed: {e}")

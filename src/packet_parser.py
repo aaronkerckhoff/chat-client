@@ -4,8 +4,7 @@ import signature
 import public_key
 import base64
 from client_state import ClientState
-current_protocol_version = 0
-
+from protocol_ver import current_protocol_version
 class PubKey:
     def __init__(self, b64_str: str):
         pass
