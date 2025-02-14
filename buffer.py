@@ -1,3 +1,5 @@
+import io
+import json
 import socket
 from queue import Queue
 from time import sleep
@@ -30,15 +32,35 @@ class Buffer:
             self.q[r] = Queue() 
         self.q[r].put(data)
 
-    def checkVersion(self, data):
-        if not(data[:10] == str(bin(69))):
-            raise Exception("Wrong Version ({data[:8]})")
-
 
 IP = '192.168.176.250'
 PORT = 12345
 
+magicNumber = 69
+
 time = 60*5
+
+def formatData(data, magicNumber: int):
+    stream = io.BytesIO(data)
+
+    stream.seek(0)
+    version = stream.read(8)
+
+    if not version == magicNumber:
+        raise Exception("Wrong Version: {version}")
+    
+    stream.seek(8)
+    protocol = stream.read(10)
+
+    if not protocol == 0:
+        raise Exception("Wrong Protocol Version: {version}")
+    
+    stream.seek(16)
+    cversion = stream.read(15)
+
+    if not cversion == 0:
+        raise Exception("Wrong Client-spesific Version: {version}")
+
 
 def runBuffer():
     buffer = Buffer(IP, PORT)
