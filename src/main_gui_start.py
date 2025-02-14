@@ -5,6 +5,7 @@ from pathlib import Path
 from web_client.client import Client
 
 import packet_parser
+import public_key
 import packet_creator
 import sys
 import os
@@ -14,7 +15,7 @@ import threading
 import io
 import time
 
-from client_state import ClientState, new_client
+from client_state import ClientState, new_client, ChatState
 
 #-------------------- CLASSES --------------------
 #Define Login Popup here
@@ -97,7 +98,7 @@ class LoginPopup(QDialog):
         self.accept()  # Close the dialog on Name Enter
 
 class WorkerThread(threading.Thread):
-    def __init__(self, client):
+    def __init__(self, client: ClientState):
         super().__init__()
         self.daemon = True  # Ensures thread stops when the main program exits
         self.running = True
@@ -105,8 +106,8 @@ class WorkerThread(threading.Thread):
 
     def run(self):
         while self.running:
-            
-            time.sleep(1000)  
+            self.client.broadcast_self()
+            time.sleep(100)  
 
     def stop(self):
         self.running = False
@@ -123,6 +124,7 @@ class WorkerThread(threading.Thread):
 
     def task(self):
         """The hardcoded task the thread will execute"""
+        print("Running task")
         message = self.client.client_socket.receive_message()
         message = io.BytesIO(message)
         if not message:
@@ -179,7 +181,7 @@ class ChatApp(QWidget):
 
         # ---------- New Chat System Setup ----------
         # Dictionary to store messages per chat (key: chat partner, value: list of (sender, message))
-        self.chats = {}      
+        self.chats: dict[public_key.PublicKey, ] = {}      
         # Currently selected chat partner (for messages sent by you)
         self.current_chat = None  
         
@@ -280,11 +282,12 @@ class ChatApp(QWidget):
         self.new_chat_button.show()
 
         # Add test users
-        self.test_users = ["Bob", "Alice", "Martin"] # Simulating many users -> REMOVE IN PROD
-        for user in self.test_users:
-            user_button = QPushButton(user)
-            user_button.clicked.connect(lambda checked, u=user: self.on_user_selected(u))
-            self.contacts_layout.addWidget(user_button)
+        #self.test_users = ["Bob", "Alice", "Martin"] # Simulating many users -> REMOVE IN PROD
+        self.test_users = None
+        #for user in self.test_users:
+        #    user_button = QPushButton(user)
+        #    user_button.clicked.connect(lambda checked, u=user: self.on_user_selected(u))
+        #    self.contacts_layout.addWidget(user_button)
 
         # Add a stretch at the bottom to keep spacing consistent
         self.contacts_layout.addStretch(1)
@@ -378,7 +381,7 @@ class ChatApp(QWidget):
             self.user_list_layout.addWidget(new_contact)
             self.test_users.append(sender)
 
-    def on_user_selected(self, user):
+    def on_user_selected(self, user: public_key.PublicKey):
         """
         Called when a user in the contacts list is clicked.
         Updates the current chat and displays its messages.
@@ -445,7 +448,7 @@ class ChatApp(QWidget):
         label = QLabel(f"{sender}: {message}")
         self.message_container_layout.addWidget(label)
     
-    def display_chat(self, chat_user):
+    def display_chat(self, chat_user: public_key.PublicKey):
         """
         Clears and displays all messages for the specified chat.
         """
@@ -457,8 +460,8 @@ class ChatApp(QWidget):
         # Display stored messages for the selected chat
         for sender, message in self.chats.get(chat_user, []):
             self.add_message_label(sender, message)
-
-        self.message_area_label.setText(f"Chat Messages - {chat_user}")
+        username = self.client_backend.chats[chat_user].display_name
+        self.message_area_label.setText(f"Chat Messages - {username}")
 
     
     def receive_message(self, message, sender):
@@ -515,11 +518,22 @@ class ChatApp(QWidget):
         Adds a new chat contact if a valid name is provided.
         The new chat button is inserted before the New Chat button so that it always remains last.
         """
+        found_users = []
+        for key, status in self.client_backend.chats.values():
+            if status.display_name == contact_name:
+                found_users.append(key)
+
+        
+                
         # Request Open Key From Buffer
-        if contact_name.strip() == "":
-            print("No name provided")
+        if len(found_users) == 0:
+            print("No users found")
             return
-        if contact_name in self.test_users:
+        if len(found_users) > 1:
+            print("There were multipe users with that name, Todo: let client select.")
+            return
+        contact = found_users[0]
+        if contact in self.test_users:
             print("Chat with that contact already exists")
             return
 
