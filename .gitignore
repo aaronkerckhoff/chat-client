@@ -3,7 +3,12 @@
 */__pycache__
 *.env
 *.log
+<<<<<<< HEAD
 /src/.env
 __pycache__/
 *.py[cod]
 /keys
+=======
+__pycache__/
+*.py[cod]
+>>>>>>> 6554f82b7d58e9056c1f23268bdb0431b9f68368
