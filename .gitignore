@@ -1,4 +1,9 @@
 /.venv
+# doesnt work ig
 */__pycache__
 *.env
 *.log
+/src/.env
+__pycache__/
+*.py[cod]
+
