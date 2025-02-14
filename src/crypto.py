@@ -83,3 +83,17 @@ def rsa_decrypt(private_key, ciphertext: bytes) -> bytes:
         ),
     )
     return plaintext
+
+
+def sign_message(private_key, message: bytes) -> bytes:
+    """
+    Sign a message using RSA-PSS.
+    """
+    signature = private_key.sign(
+        message,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256(),
+    )
+    return signature
