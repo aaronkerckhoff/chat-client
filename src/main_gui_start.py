@@ -16,7 +16,7 @@ import io
 import time
 
 from blocking import check_blocked, block, unblock
-from client_state import ClientState, new_client, ChatState
+from client_state import ClientState, load_or_new_client, ChatState
 
 #-------------------- CLASSES --------------------
 #Define Login Popup here
