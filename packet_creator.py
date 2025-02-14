@@ -18,8 +18,14 @@ def create_body(message_type):
         "type" : message_type
     }
     return body
-def create_direct_message():
+def create_direct_message(receiver : str):
     body = create_body("DIRECTED")
-    body["receiver"] = 
+    body["receiver"] = receiver
+    return body
+def create_direct_content_message(receiver, message_content):
+    body = create_direct_message(receiver)
+    body["content"] = message_content
+    return body
+
     
 
