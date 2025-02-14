@@ -26,7 +26,7 @@ PORT = 12345
 class ClientState:
 
     def __init__(self, pub_key: public_key.PublicKey, priv_key, display_name: str, received_callback):
-        self.chats: dict[public_key.PublicKey, ChatState] = {},
+        self.chats: dict[public_key.PublicKey, ChatState] = dict()
         self.discovered_clients = dict()
         self.public_key = pub_key
         self.private_key = priv_key

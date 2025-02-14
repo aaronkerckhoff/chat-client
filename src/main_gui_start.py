@@ -158,7 +158,7 @@ class ChatApp(QWidget):
         
         # -------------------- INIT --------------------
 
-        if os.name == "WINDOWS":
+        if os.name == "nt":
             self.appdata_path = Path(os.getenv("APPDATA"))  # Convert to Path object
         else:
             self.appdata_path = Path(os.getenv("HOME")) # Assume linux
@@ -196,8 +196,6 @@ class ChatApp(QWidget):
         self.poller_thread = WorkerThread(self.client_backend)
         self.poller_thread.start_task()
 
-        
-
     def load_username(self):
         """Loads the username from the user.txt JSON file."""
         try:
@@ -208,7 +206,8 @@ class ChatApp(QWidget):
             self.username = "Username Key not Found!"
             sys.exit()
 
-        print("Found Username: " + self.username)    
+        print("Found Username: " + self.username)  
+
     def init_ui(self):
         """Initializes the GUI components."""
         # -------------------- Apply Styling ----------------
@@ -351,6 +350,7 @@ class ChatApp(QWidget):
         self.setLayout(self.layout)
 
         # Set default current chat to the first contact (if any)
+        #Init OpenKeyChatTuple
         if self.test_users:
             self.display_chat(self.test_users[0])
             self.current_chat = self.test_users[0]
@@ -408,7 +408,7 @@ class ChatApp(QWidget):
         # Send message via web_client
         # IMPORTANT ------ Implement Encryption before sending
         try:
-            self.web_client.send(text + "\n") # Need \n escape in order to be able to send message
+            self.client_backend.send_message(self.client_backend.chats.next((k for k, v in self.client_backend.chats.items() if v == self.current_chat), None), text) # Need \n escape in order to be able to send message
             print("Message sent to web client")
         except Exception as e:
             print(f"CRITICAL: The message wasnt able to be sent: {e}")
