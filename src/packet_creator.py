@@ -72,6 +72,7 @@ def create_directed_message(receiver : str):
 def create_direct_message(receiver, message: bytes, hash: str, sender: str, nonce: str):
     body = create_directed_message(receiver)
     body["inner"] = {
+        "type": "MESSAGE",
         "data": base64.b64encode(message).decode("utf-8"),
         "hash": hash,
         "sender": sender,
@@ -83,6 +84,7 @@ def create_direct_message(receiver, message: bytes, hash: str, sender: str, nonc
 def create_exchange_message(key: str, sender: str, sig: str, receiver: str):
     body = create_directed_message(receiver)
     body["inner"] = {
+        "type": "EXCHANGE",
         "sym_key": key,
         "sender": sender,
         "sig": sig
