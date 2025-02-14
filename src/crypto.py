@@ -101,14 +101,13 @@ def aes_encrypt(key, plaintext, associated_data=None):
     }
 
 
-def aes128_decrypt(key, encrypted_data):
+def aes_decrypt(key, encrypted_data):
     """
-    Decrypt ciphertext using AES-128-GCM.
+    Decrypt ciphertext using AES-256-GCM.
     """
     if len(key) != 32:
-        print("Key must be 16 bytes for AES-128")
+        print("Key must be 32 bytes for AES-256")
         return
-    print(f"\nAAAAAAAAAAAAAAAAAAAA\n{encrypted_data} ")
     nonce = encrypted_data["nonce"]
     ciphertext = encrypted_data["ciphertext"]
     associated_data = encrypted_data.get("associated_data", None)
