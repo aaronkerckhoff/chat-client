@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog, QScrollArea, QSizePolicy, QLayout, QLayoutItem
 from PyQt6.QtGui import QFont
-from PyQt6.QtCore import Qt, QEvent, QObject
+from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from pathlib import Path
 from web_client.client import Client
 
@@ -148,7 +148,7 @@ class ChatApp(QWidget):
         
     def init_web_client(self):
         print("Starting Web Client Connection...")
-        self.web_client = Client("192.168.176.160", 12345)
+        self.web_client = Client("192.168.176.160", 12345, on_message_received=self.msg_recieved)
 
     def load_username(self):
         """Loads the username from the user.txt JSON file."""
@@ -309,13 +309,16 @@ class ChatApp(QWidget):
             self.display_chat(self.test_users[0])
             self.current_chat = self.test_users[0]
 
-    def on_message_received(self, message, sender):
+    def msg_recieved(self, client, message):
         """
         Called when a new message is received.
         Creates a new label in the chat message area.
         Also checks if the sender is already in the contacts sidebar;
         if not, you could add it.
         """
+        print(message)
+        #sernder = ...
+        return
         # Modify this to adapt to the new system of JSON Format 
         # For simplicity, the message will be displayed as "Sender: Message"
         message_label = QLabel(f"{sender}: {message}")
@@ -328,7 +331,7 @@ class ChatApp(QWidget):
             new_contact.clicked.connect(lambda checked, u=sender: self.on_user_selected(u))
             self.user_list_layout.addWidget(new_contact)
             self.test_users.append(sender)
-    
+
     def on_user_selected(self, user):
         """
         Called when a user in the contacts list is clicked.

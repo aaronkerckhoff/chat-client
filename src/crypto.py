@@ -122,9 +122,9 @@ def verify_signature(public_key, message: bytes, signature: bytes) -> bool:
 # AES functions
 def generate_aes_key() -> bytes:
     """
-    Generates a random 128-bit AES key.
+    Generates a random 256-bit AES key.
     """
-    return os.urandom(16)
+    return os.urandom(32)
 
 
 def aes_encrypt(key: bytes, plaintext: bytes, associated_data: bytes) -> dict:
