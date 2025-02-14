@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog
 from PyQt6.QtGui import QFont, QFontDatabase, QIcon
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QFile
 from pathlib import Path
 
 import sys
@@ -181,6 +181,7 @@ class ChatApp(QWidget):
         self.user_list_label.setFont(QFont("Any", 12))
         self.user_list_layout.addWidget(self.user_list_label)
         # For testing purposes, add some sample contacts/users
+        # REMOVE HERE IN PROD
         self.test_users = ["Alice", "Bob", "Charlie"]
         for user in self.test_users:
             user_button = QPushButton(user)
@@ -223,6 +224,8 @@ class ChatApp(QWidget):
         self.bottom_send_button.clicked.connect(self.bottom_send_message)
         self.bottom_upload_button.clicked.connect(self.upload_file)
         
+        self.bottom_message_input.returnPressed.connect(self.bottom_send_message)
+
         # Add a stretch to push the input bar to the bottom
         layout.addStretch()
         layout.addLayout(self.bottom_input_layout)
@@ -231,6 +234,7 @@ class ChatApp(QWidget):
         
         # Set default current chat to the first contact (if any)
         if self.test_users:
+            self.display_chat(self.test_users[0])
             self.current_chat = self.test_users[0]
     
     def on_message_received(self, message, sender):
@@ -240,6 +244,7 @@ class ChatApp(QWidget):
         Also checks if the sender is already in the contacts sidebar;
         if not, you could add it.
         """
+        # Modify this to adapt to the new system of JSON Format 
         # For simplicity, the message will be displayed as "Sender: Message"
         message_label = QLabel(f"{sender}: {message}")
         self.message_container_layout.addWidget(message_label)
@@ -261,24 +266,13 @@ class ChatApp(QWidget):
         self.current_chat = user
         self.display_chat(user)
     
-    def send_message(self):
-        """
-        (Legacy method kept for compatibility.)
-        Currently not used because the bottom input bar has its own method.
-        """
-        if not self.current_chat:
-            print("No chat selected!")
-            return
-        text = self.message_input.text().strip()
-        if text:
-            self.add_message_to_chat(self.current_chat, text, self.username)
-            self.message_input.clear()
     
     def bottom_send_message(self):
         """
         Called when the bottom send button is clicked.
         Adds the message to the active chat using the new bottom input bar.
         """
+        # Add Send via tcp here
         if not self.current_chat:
             print("No chat selected!")
             return
@@ -292,7 +286,7 @@ class ChatApp(QWidget):
         Called when the upload button is clicked.
         Currently left empty for later implementation.
         """
-        # (Later) Add file upload logic
+        self.open_file_dialog()
         pass
     
     # -------------------- New Chat Message System --------------------
@@ -325,6 +319,9 @@ class ChatApp(QWidget):
         # Display stored messages for the selected chat
         for sender, message in self.chats.get(chat_user, []):
             self.add_message_label(sender, message)
+
+        self.message_area_label.setText(f"Chat Messages - {chat_user}")
+
     
     def receive_message(self, message, sender):
         """
@@ -332,6 +329,7 @@ class ChatApp(QWidget):
         If the sender is not the current user, the chat partner is the sender.
         If the message is from the current user, it's added to the active chat.
         """
+        # Replace in new System where sender is specified
         chat_user = sender if sender != self.username else self.current_chat
         if chat_user is None:
             chat_user = sender
@@ -379,6 +377,7 @@ class ChatApp(QWidget):
         Adds a new chat contact if a valid name is provided.
         The new chat button is inserted before the New Chat button so that it always remains last.
         """
+        # Request Open Key From Buffer
         if contact_name.strip() == "":
             print("No name provided")
             return
@@ -392,6 +391,17 @@ class ChatApp(QWidget):
         self.test_users.append(contact_name)
         self.chats[contact_name] = []  # initialize an empty chat for this contact
         dialog.accept()
+
+    def open_file_dialog(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*);;Text Files (*.txt)")
+
+        if file_path:  # If a file was selected
+            with open(file_path, "rb") as file:
+                file_bytes = file.read()  # Read file as bytes
+                print(f"File Bytes: {file_bytes[:50]}...")  # Print first 50 bytes as a check
+        
+        # Send as File Message
+
 
 # Main Statement -> Creates the main window
 if __name__ == "__main__":
