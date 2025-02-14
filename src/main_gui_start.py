@@ -221,14 +221,17 @@ class ChatApp(QWidget):
         print("Found Username: " + self.username)
 
     def on_top_right_button_click(self):
-        if check_blocked(69):
+        if check_blocked(self.current_chat):
             print("UNBLOCKING")
-            unblock(69)
+            unblock(self.current_chat)
             self.top_right_button.setText("FREE✅")
         else:
             print("BLOCKING")
-            block(69)
-            self.top_right_button.setText("BLOCKED🚫")  
+            block(self.current_chat)
+            self.top_right_button.setText("BLOCKED🚫")
+
+    def block_button_update(self):
+          self.top_right_button.setText("BLOCKED🚫" if check_blocked(self.current_chat) else "FREE✅")
 
     def init_ui(self):
         """Initializes the GUI components."""
@@ -353,7 +356,7 @@ class ChatApp(QWidget):
         self.top_bar_layout = QHBoxLayout()
 
         # Create the button
-        self.top_right_button = QPushButton("BLOCKED🚫" if check_blocked(69) else "FREE✅", self)  # Settings or any function
+        self.top_right_button = QPushButton("BLOCKED🚫" if check_blocked(self.current_chat) else "FREE✅", self)  # Settings or any function
         self.top_right_button.setFixedSize(100, 30)  # Set size
         self.top_right_button.clicked.connect(self.on_top_right_button_click)  # Connect to function
 
