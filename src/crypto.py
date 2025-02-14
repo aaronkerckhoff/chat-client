@@ -2,6 +2,7 @@ import os
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import hashlib
 
 from src.logger_utils import setup_logger
 
@@ -145,3 +146,8 @@ def aes_decrypt(
     aesgcm = AESGCM(key)
     plaintext = aesgcm.decrypt(nonce, ciphertext, associated_data)
     return plaintext
+
+def get_sha256_hash(message : bytes) -> bytes:
+    m = hashlib.sha256()
+    m.update(message)
+    return m.digest
