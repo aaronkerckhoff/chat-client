@@ -59,10 +59,10 @@ def test_rsa_sign_verify():
 
 
 def test_generate_aes_key():
-    """Test that generate_aes_key returns a 16-byte key."""
+    """Test that generate_aes_key returns a 32-byte key."""
     key = crypto.generate_aes_key()
     assert isinstance(key, bytes)
-    assert len(key) == 16
+    assert len(key) == 32
 
 
 def test_aes_encryption_decryption():
