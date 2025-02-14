@@ -51,7 +51,7 @@ def runBuffer():
 
     for _ in range(time):
         data = buffer.listen()
-        version, protokoll, cversion, sdata = formatData(data, 69)
+        version, protokoll, cversion, sdata = formatData(data)
 
 
 #            sdata, v, p, cv = formatData(data, 69)
