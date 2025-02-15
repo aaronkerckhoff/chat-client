@@ -492,7 +492,7 @@ class ChatApp(QWidget):
         if chat_user not in self.chats:
             self.chats[chat_user] = []
         self.chats[chat_user].append((sender, message))
-        if self.current_chat == chat_user:
+        if self.current_chat == None or self.current_chat == chat_user:
             self.add_message_label(sender, message)
     
     def add_message_label(self, sender, message):
@@ -610,7 +610,8 @@ class ChatApp(QWidget):
 
         # ✅ Re-add the stretch at the end to keep contacts aligned properly
         self.contacts_layout.addStretch(1)
-        dialog.accept()
+        if dialog:
+            dialog.accept()
 
     def open_file_dialog(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*);;Text Files (*.txt)")

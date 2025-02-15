@@ -30,10 +30,15 @@ class Buffer:
             self.q[r] = Queue() 
         self.q[r].put(data)
 
-IP = '192.168.176.250'
+IP = '192.168.176.160'
 PORT = 12345
 
 time = 60*5
+
+def formatData(data):
+    
+
+    return data
 
 def runBuffer():
     buffer = Buffer(IP, PORT)
