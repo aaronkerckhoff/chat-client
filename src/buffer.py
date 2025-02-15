@@ -1,3 +1,5 @@
+import io
+import json
 import socket
 from queue import Queue
 from time import sleep
@@ -32,10 +34,14 @@ class Buffer:
             self.q[r] = Queue() 
         self.q[r].put(data)
 
+
+#IP = '192.168.176.250'
 IP = '192.168.176.160'
 PORT = 12345
 
-time = 60*5
+magicNumber = 69
+
+time = 60
 
 def formatData(data):
     io_stream = io.BytesIO(data[0])
@@ -47,12 +53,16 @@ def formatData(data):
 def runBuffer():
     buffer = Buffer(IP, PORT)
 
-    for i in range(time):
+    for _ in range(time):
+        data = None
         data = buffer.listen()
         print(f"Received from server: {data}", end="")
         mn, sd = formatData(data)
         print(mn, sd)
         sleep(1)
+
+        #except:
+        #    print("Wrong Format")
 
     buffer.socket.close()
 

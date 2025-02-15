@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog, QScrollArea, QSizePolicy, QLayout, QLayoutItem
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog, QScrollArea, QSizePolicy, QLayout, QLayoutItem, QSpacerItem
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from pathlib import Path
@@ -233,13 +233,13 @@ class ChatApp(QWidget):
         print("Found Username: " + self.username)
 
     def on_top_right_button_click(self):
-        if check_blocked(self.current_chat):
+        if check_blocked(self.current_chat.as_base64_string()):
             print("UNBLOCKING")
-            unblock(self.current_chat)
+            unblock(self.current_chat.as_base64_string())
             self.top_right_button.setText("FREE✅")
         else:
             print("BLOCKING")
-            block(self.current_chat)
+            block(self.current_chat.as_base64_string())
             self.top_right_button.setText("BLOCKED🚫")
 
     def block_button_update(self):
@@ -431,7 +431,7 @@ class ChatApp(QWidget):
             self.add_new_chat(sender_name, None)
 
         self.add_message_to_chat(sender, message, sender_name)
-        self.display_chat(sender)
+        #self.display_chat(sender)
 
     def on_user_selected(self, user: public_key.PublicKey):
         """
@@ -492,30 +492,52 @@ class ChatApp(QWidget):
         if chat_user not in self.chats:
             self.chats[chat_user] = []
         self.chats[chat_user].append((sender, message))
-        if self.current_chat == chat_user:
+        if self.current_chat == None or self.current_chat == chat_user:
             self.add_message_label(sender, message)
     
     def add_message_label(self, sender, message):
         """
-        Adds a new message label to the chat display.
+        Adds a new message label to the chat display with fixed spacing.
         """
         label = QLabel(f"{sender}: {message}")
+        label.setWordWrap(True)
+
+        # Prevents messages from expanding and overriding spacing
+        label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+
+        # Set a fixed height (adjust as needed)
+        label.setFixedHeight(10)  
+
+        # Add the message to the layout
         self.message_container_layout.addWidget(label)
+
+        # Add fixed spacing between messages
+        self.message_container_layout.addSpacing(5)  # Try changing this number
+
+
+
     
-    def display_chat(self, chat_user: public_key.PublicKey):
+    def display_chat(self, chat_user):
         """
-        Clears and displays all messages for the specified chat.
+        Clears and displays all messages for the specified chat, ensuring they appear top to bottom.
         """
-        # Clear existing messages in the display area
+        # Clear the current messages
         while self.message_container_layout.count():
-            child = self.message_container_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-        # Display stored messages for the selected chat
+            item = self.message_container_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        # Ensure messages appear top to bottom
+        self.message_container_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Add messages with fixed spacing
         for sender, message in self.chats.get(chat_user, []):
             self.add_message_label(sender, message)
-        username = self.client_backend.discovered_clients[chat_user]
-        self.message_area_label.setText(f"Chat Messages - {username}")
+
+        # Update the chat title
+        self.message_area_label.setText(f"Chat Messages - {chat_user}")
+
+
 
     
     def receive_message(self, message, sender):
@@ -610,7 +632,8 @@ class ChatApp(QWidget):
 
         # ✅ Re-add the stretch at the end to keep contacts aligned properly
         self.contacts_layout.addStretch(1)
-        dialog.accept()
+        if dialog:
+            dialog.accept()
 
     def open_file_dialog(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*);;Text Files (*.txt)")
