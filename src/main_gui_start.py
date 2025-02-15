@@ -431,7 +431,7 @@ class ChatApp(QWidget):
             self.add_new_chat(sender_name, None)
 
         self.add_message_to_chat(sender, message, sender_name)
-        self.display_chat(sender)
+        #self.display_chat(sender)
 
     def on_user_selected(self, user: public_key.PublicKey):
         """
