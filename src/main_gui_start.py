@@ -423,7 +423,7 @@ class ChatApp(QWidget):
         #return
         # Modify this to adapt to the new system of JSON Format 
         # For simplicity, the message will be displayed as "Sender: Message"
-        sender_name = self.client_backend.discovered_clients[sender]
+        sender_name = self.client_backend.get_key_name(sender)
 
         # (Optional) If sender is not in your contacts, you could add a new button/label.
         if sender not in self.test_users and sender_name != self.username:
@@ -440,7 +440,8 @@ class ChatApp(QWidget):
         """
         print(f"Selected chat with: {user}")
         self.current_chat = user
-        self.display_chat(user)
+        username = self.client_backend.get_key_name(user)
+        self.display_chat(username)
     
     
     def bottom_send_message(self):
@@ -506,7 +507,7 @@ class ChatApp(QWidget):
         label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         # Set a fixed height (adjust as needed)
-        label.setFixedHeight(10)  
+        label.setFixedHeight(15)  
 
         # Add the message to the layout
         self.message_container_layout.addWidget(label)
@@ -517,7 +518,7 @@ class ChatApp(QWidget):
 
 
     
-    def display_chat(self, chat_user):
+    def display_chat(self, chat_user: str):
         """
         Clears and displays all messages for the specified chat, ensuring they appear top to bottom.
         """

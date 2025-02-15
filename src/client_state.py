@@ -59,7 +59,7 @@ class ClientState:
         sym_key = crypto.rsa_decrypt(self.private_key, encrypted_shared_secret)
         if not shared_secret_signature.valid_for(sender, sym_key):
             return
-        self.chats[sender] = ChatState(sym_key, self.discovered_clients[sender], sender)
+        self.chats[sender] = ChatState(sym_key, self.get_key_name(sender), sender)
         #self.msg_recieved_callback("Chat was instanciated", sender)  
         self.message_queue.append(("Chat was instanciated", sender))          
         print("Received shared secret")
@@ -76,7 +76,18 @@ class ClientState:
             receiver.as_base64_string()
         )
         self.client_socket.send(message_pckt)
-        self.chats[receiver] = ChatState(random_key, self.discovered_clients[receiver], receiver)            
+        self.chats[receiver] = ChatState(random_key, self.get_key_name(receiver), receiver)            
+
+    def get_key_name(self, key: public_key.PublicKey) -> str:
+        formatted_key = key.as_base64_string()
+        formatted_key = formatted_key[70:76] + "..." + formatted_key[-76:-70]
+
+        if not key in self.discovered_clients:
+            username = "Unknown"
+        else:
+            username = self.discovered_clients[key]
+
+        return username + "(" + formatted_key + ")"
 
 
     def received_message(self, sender: public_key.PublicKey, encrypted_message_bytes: bytes, decrypted_hash: bytes, nonce: bytes):
@@ -117,6 +128,8 @@ class ClientState:
             print("Sig invalid " + public_key.as_base64_string() + "\nSig:" + signature.to_base64())
             return
         self.discovered_clients[public_key] = name
+        if public_key in self.chats:
+            self.chats[public_key].display_name = name
     
 
 
