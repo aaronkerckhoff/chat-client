@@ -18,6 +18,7 @@ import time
 from censor_bad_words import filter_new_message
 from blocking import check_blocked, block, unblock
 from client_state import ClientState, load_or_new_client, ChatState
+import user_config
 
 #-------------------- CLASSES --------------------
 #Define Login Popup here
@@ -171,24 +172,13 @@ class ChatApp(QWidget):
         
         # -------------------- INIT --------------------
 
-        if os.name == "nt":
-            self.appdata_path = Path(os.getenv("APPDATA"))  # Convert to Path object
-        else:
-            self.appdata_path = Path(os.getenv("HOME")) # Assume linux
-        print("AppData path: " + str(self.appdata_path))  # Print Save Dir
+        self.chat_client_save_path = user_config.get_default_config_path() # We don't yet support changing the default save path.
         
-        self.file_path = self.appdata_path / "Chat" / "user.txt"  # Correct path creation
-        
-        # If we dont have a User already set up we need to show the login popup before showing the main window
-        if not self.file_path.exists():
-            print("File not found. Setting up new User at: " + str(self.file_path))
-            self.file_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure the "Chat" folder exists
-            
-            # INIT USER HERE WITH POPUP
-            newuserpopup = LoginPopup(self.file_path) # Create login popup here
-            newuserpopup.exec()
-        
-        self.load_username()
+        print("Saving config at: " + str(self.chat_client_save_path))
+
+        user_config.ensure_exists()
+
+        self.load_or_create_username()
 
         # ---------- New Chat System Setup ----------
         # Dictionary to store messages per chat (key: chat partner, value: list of (sender, message))
@@ -197,7 +187,7 @@ class ChatApp(QWidget):
         self.current_chat = None
         
         # INIT HT EUPDATE QUEUE FOR CHATS
-        # Create a timer that updates every 16ms (~60 FPS)
+        # Timer used for working on the received message queue.
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(16)  # 16ms ≈ 60 FPS
@@ -221,15 +211,17 @@ class ChatApp(QWidget):
         self.poller_thread = WorkerThread(self.client_backend)
         self.poller_thread.start_task()
 
-    def load_username(self):
+    def load_or_create_username(self):
         """Loads the username from the user.txt JSON file."""
-        try:
-            with open(self.file_path, "r", encoding="utf-8") as file:
-                data = json.load(file)  # Parse JSON
-            self.username = data.get("username", "Username Key not Found!")
-        except (json.JSONDecodeError, FileNotFoundError):
-            self.username = "Username Key not Found!"
-            sys.exit()
+
+        config = user_config.load_config()
+
+        if "username" in config:
+            self.username = config["username"]
+        else:
+            # Prompt user to enter new username.
+            new_user_popup = LoginPopup(self.chat_client_save_path)
+            new_user_popup.exec()
 
         print("Found Username: " + self.username)
 
@@ -246,9 +238,13 @@ class ChatApp(QWidget):
             self.top_right_button.setText("BLOCKED🚫")
 
     def block_button_update(self):
-          if not self.current_chat:
-              return
-          self.top_right_button.setText("BLOCKED🚫" if check_blocked(self.current_chat.as_base64_string()) else "FREE✅")
+        if not self.current_chat:
+            self.top_right_button.hide()
+            return
+        
+        self.top_right_button.show()
+
+        self.top_right_button.setText("BLOCKED🚫" if check_blocked(self.current_chat.as_base64_string()) else "FREE✅")
 
     def init_ui(self):
         """Initializes the GUI components."""
@@ -655,12 +651,3 @@ class ChatApp(QWidget):
         # Return File Bytes
         return file_bytes.decode('utf-8')
 
-
-
-# Main Statement -> Creates the main window
-if __name__ == "__main__":
-    app = QApplication(sys.argv)  # Initialize the application
-    window = ChatApp()            # Create the main chat window
-
-    window.show()                 # Show the GUI
-    sys.exit(app.exec())          # Start the application event loop
