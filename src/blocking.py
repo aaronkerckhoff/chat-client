@@ -1,98 +1,50 @@
 import os
 import json
 from pathlib import Path
+import user_config
 
-def block(pk):
+def load_blocked_config() -> dict:
+    """Loads the config, ensuring the blocked key is set up if not present"""
+
+    config = user_config.load_config()
+
+    if "blocked" not in config:
+        config["blocked"] = []
+    
+    return config
+
+
+def block(pk: str):
     try:
-        # Convert pk to string to prevent type mismatches
-        pk = str(pk)
+        config = load_blocked_config()
 
-        # Get the path to the user file in the APPDATA directory
-        appdata_path = Path(os.getenv("APPDATA"))
-        file_path = appdata_path / "Chat" / "user.txt"
-
-        # Check if the file exists
-        if not file_path.exists():
-            return
-        
-        # Read the current blocked users from the file
-        with file_path.open("r", encoding="utf-8") as file:
-            blocked_users = json.load(file)
-
-        # Ensure the "blocked" key exists
-        if "blocked" not in blocked_users:
-            blocked_users["blocked"] = []
-
-        # Only add pk to the blocked list if it's not already there
-        if pk not in blocked_users["blocked"]:
-            blocked_users["blocked"].append(pk)
-
-        # Write the updated blocked users back to the file
-        with file_path.open("w", encoding="utf-8") as file:
-            json.dump(blocked_users, file, ensure_ascii=False, indent=4)
-
+        if pk not in config["blocked"]:
+            config["blocked"].append(pk)
+            # We only need to save if we changed the config
+            user_config.write_config(config)
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred trying to block the user: {e}")
 
 
-def unblock(pk):
+def unblock(pk: str):
     try:
-        # Convert pk to string to prevent type mismatches
-        pk = str(pk)
-
-        # Get the path to the user file in the APPDATA directory
-        appdata_path = Path(os.getenv("APPDATA"))
-        file_path = appdata_path / "Chat" / "user.txt"
-
-        # Check if the file exists
-        if not file_path.exists():
-            return
-        
-        # Read the current blocked users from the file
-        with file_path.open("r", encoding="utf-8") as file:
-            blocked_users = json.load(file)
-
-        # Ensure the "blocked" key exists
-        if "blocked" not in blocked_users:
-            return
+        blocked_users = load_blocked_config()
 
         # Remove pk from the blocked list if it exists
         if pk in blocked_users["blocked"]:
             blocked_users["blocked"].remove(pk)
-
-            # Write the updated blocked users back to the file
-            with file_path.open("w", encoding="utf-8") as file:
-                json.dump(blocked_users, file, ensure_ascii=False, indent=4)
+            user_config.write_config(blocked_users)
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred trying to unblock the user: {e}")
 
-def check_blocked(pk):
+def check_blocked(pk: str):
     try:
-        # Convert pk to string to prevent type mismatches
-        pk = str(pk)
-
-        # Get the path to the user file in the APPDATA directory
-        appdata_path = Path(os.getenv("APPDATA"))
-        file_path = appdata_path / "Chat" / "user.txt"
-
-        # Check if the file exists
-        if not file_path.exists():
-            return False  # If the file doesn't exist, return False
-        
-        # Read the current blocked users from the file
-        with file_path.open("r", encoding="utf-8") as file:
-            blocked_users = json.load(file)
-
-        # Ensure the "blocked" key exists
-        if "blocked" not in blocked_users:
-            return False  # If the "blocked" key doesn't exist, return False
+        blocked_users = load_blocked_config()
 
         # Check if pk is in the blocked list
         return pk in blocked_users["blocked"]
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred trying to load whether a user was blocked: {e}")
         return False
-
-print(check_blocked(69))

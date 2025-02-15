@@ -19,7 +19,7 @@ class ChatState:
         if received_hash == decrypted_hash:
             return decrypted_message.decode("utf-8")
 
-IP = '192.168.176.160'
+IP = '192.168.178.76'
 PORT = 12345
         
 

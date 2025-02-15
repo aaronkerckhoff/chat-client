@@ -68,5 +68,5 @@ chat-client/
 [Mathis](https://github.com/dickWittmann) \
 [Richard](https://github.com/1TheCrazy) \
 [Nina](https://github.com/nzi00) \
-[Lea](https://github.com/Ekischleki) \
+[Leah](https://github.com/Ekischleki) \
 [Martin](https://github.com/Moxile)
