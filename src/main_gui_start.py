@@ -233,13 +233,13 @@ class ChatApp(QWidget):
         print("Found Username: " + self.username)
 
     def on_top_right_button_click(self):
-        if check_blocked(self.current_chat):
+        if check_blocked(self.current_chat.as_base64_string()):
             print("UNBLOCKING")
-            unblock(self.current_chat)
+            unblock(self.current_chat.as_base64_string())
             self.top_right_button.setText("FREE✅")
         else:
             print("BLOCKING")
-            block(self.current_chat)
+            block(self.current_chat.as_base64_string())
             self.top_right_button.setText("BLOCKED🚫")
 
     def block_button_update(self):
