@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import hashlib
 
-from src.logger_utils import setup_logger
+from logger_utils import setup_logger
 
 logger = setup_logger("rsa_encryption", "rsa_encryption.log")
 
@@ -43,6 +43,13 @@ def generate_rsa_key_pair():
 
     logger.info("RSA key pair generated and saved.")
 
+def keys_exist() -> bool:
+    try:
+        load_private_key()
+        load_public_key()
+    except OSError:
+        return False
+    return True
 
 def load_private_key():
     with open(PRIVATE_KEY_FILE, "rb") as file:
@@ -57,7 +64,7 @@ def load_public_key():
 
 
 # RSA functions
-def rsa_encrypt(public_key, data: bytes) -> bytes:
+def rsa_encrypt(public_key: rsa.RSAPublicKey, data: bytes) -> bytes:
     """
     Encrypt data using recipient's RSA public key.
     """
@@ -72,7 +79,7 @@ def rsa_encrypt(public_key, data: bytes) -> bytes:
     return ciphertext
 
 
-def rsa_decrypt(private_key, ciphertext: bytes) -> bytes:
+def rsa_decrypt(private_key: rsa.RSAPrivateKey, ciphertext: bytes) -> bytes:
     """
     Decrypt data using RSA private key.
     """
@@ -127,14 +134,14 @@ def generate_aes_key() -> bytes:
     return os.urandom(32)
 
 
-def aes_encrypt(key: bytes, plaintext: bytes, associated_data: bytes) -> dict:
+def aes_encrypt(key: bytes, plaintext: bytes, associated_data: bytes | None) -> bytes | bytes:
     """
     Encrypts plaintext using AES-GCM.
     """
     aesgcm = AESGCM(key)
     nonce = os.urandom(12)
     ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data)
-    return {"nonce": nonce, "ciphertext": ciphertext}
+    return (nonce, ciphertext)
 
 
 def aes_decrypt(

@@ -9,6 +9,15 @@ class PublicKey:
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
         return base64.b64encode(key_bytes).decode("utf-8")
+    
+    def __eq__(self, value):
+        if value is None or self is None:
+            return False
+        return self.as_base64_string() == value.as_base64_string() 
+    
+
+    def __hash__(self):
+        return self.as_base64_string().__hash__()
 
     
 def from_rsa(rsa) -> PublicKey:

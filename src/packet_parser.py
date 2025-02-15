@@ -32,6 +32,9 @@ def execute_message(dic: dict, client: ClientState):
         receiver = public_key.from_base64_string(dic["receiver"])
         if receiver != client.get_public_key():
             return
+        execute_directed_message(inner, client)
+    elif type =="BROADCAST":
+        execute_broadcast_message(inner, client)
 
 
 
@@ -40,7 +43,7 @@ def execute_broadcast_message(dic: dict, client: ClientState):
     match type:
         case "EXISTS":
             sender_public_key = public_key.from_base64_string(dic["public_key"])
-            signed_name = signature.from_base64_string(dic["public_key"])
+            signed_name = signature.from_base64_string(dic["sig"])
             display_name =  dic["display_name"]
             client.discovered_client(sender_public_key, display_name, signed_name)
         case "WANTS":
@@ -70,7 +73,8 @@ def execute_directed_message(dic: dict, client: ClientState):
             sender = public_key.from_base64_string(dic["sender"])
             data = base64.b64decode(dic["data"])
             hash = base64.b64decode(dic["hash"])
-            client.received_message(sender, data, hash)
+            nonce = base64.b64decode(dic["nonce"])
+            client.received_message(sender, data, hash, nonce)
 
 
 

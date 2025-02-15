@@ -8,8 +8,8 @@ import public_key
 def create_head() -> io.BytesIO:
     stream = io.BytesIO()
     magic_number = 69
-    stream.write(magic_number.to_bytes(1))
-    stream.write(current_protocol_version.to_bytes(1))
+    stream.write(magic_number.to_bytes(1, byteorder="little"))
+    stream.write(current_protocol_version.to_bytes(1, byteorder="little"))
     client_specifics = 0
     stream.write(client_specifics.to_bytes(2, byteorder="little"))
     return stream
@@ -63,29 +63,28 @@ def create_wants_name_message(name: str):
     return as_bytes(body)
 
 
-def create_direct_message(receiver : str):
+def create_directed_message(receiver : str):
     body = create_body("DIRECTED")
     body["receiver"] = receiver
     return body
 
-def create_direct_message(receiver, message_content) -> bytes:
-    body = create_direct_message(receiver)
-    body["content"] = message_content
+
+def create_direct_message(receiver, message: bytes, hash: str, sender: str, nonce: str):
+    body = create_directed_message(receiver)
+    body["inner"] = {
+        "type": "MESSAGE",
+        "data": base64.b64encode(message).decode("utf-8"),
+        "hash": hash,
+        "sender": sender,
+        "nonce": base64.b64encode(nonce).decode("utf-8")
+    }
     return as_bytes(body)
 
-def create_direct_message(receiver, message: bytes, hash: bytes, sender_pub_key: public_key.PublicKey):
-    body = create_direct_message(receiver)
-    body["inner"] = {
-        "data": base64.b64encode(message),
-        "hash": base64.b64encode(hash),
-        "sender": sender_pub_key.as_base64_string()
-    }
-    return body
 
-
-def create_exchange_message(key: str, sender: str, sig: str, receiver: str):#
-    body = create_direct_message(receiver)
+def create_exchange_message(key: str, sender: str, sig: str, receiver: str):
+    body = create_directed_message(receiver)
     body["inner"] = {
+        "type": "EXCHANGE",
         "sym_key": key,
         "sender": sender,
         "sig": sig

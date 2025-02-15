@@ -4,14 +4,19 @@ from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from pathlib import Path
 from web_client.client import Client
 
-from client_state import ClientState, new_client
-
-
+import packet_parser
+import public_key
+import packet_creator
 import sys
 import os
 import json
-import sys
-import os
+
+import threading
+import io
+import time
+
+from blocking import check_blocked, block, unblock
+from client_state import ClientState, load_or_new_client, ChatState
 
 #-------------------- CLASSES --------------------
 #Define Login Popup here
@@ -93,6 +98,50 @@ class LoginPopup(QDialog):
         
         self.accept()  # Close the dialog on Name Enter
 
+class WorkerThread(threading.Thread):
+    def __init__(self, client: ClientState):
+        super().__init__()
+        self.daemon = True  # Ensures thread stops when the main program exits
+        self.running = True
+        self.client = client
+
+    def run(self):
+        running_secs = 0
+        while self.running:
+            self.task()
+            if running_secs % 50 == 0:
+                self.client.broadcast_self()
+            running_secs += 1
+            time.sleep(1)  
+
+    def stop(self):
+        self.running = False
+
+    def start_task(self):
+        """Starts the task in a separate thread"""
+        self.running = True
+        if not self.is_alive():
+            self.start()  # Start the thread if not already running
+
+    def stop_task(self):
+        """Stops the task execution"""
+        self.running = False
+
+    def task(self):
+        """The hardcoded task the thread will execute"""
+        #print("Running task")
+        message = self.client.client_socket.receive_message()
+        if not message:
+            return
+        message = io.BytesIO(message)
+        if not message:
+            print("Connection closed")
+            return
+        
+        print(f"Message Recieved: {message}")
+
+        packet_parser.parse_packet(message, self.client)
+
 class EventFilter(QObject):
     def __init__(self, main):
         super().__init__()
@@ -120,7 +169,11 @@ class ChatApp(QWidget):
         super().__init__()
         
         # -------------------- INIT --------------------
-        self.appdata_path = Path(os.getenv("APPDATA"))  # Convert to Path object
+
+        if os.name == "nt":
+            self.appdata_path = Path(os.getenv("APPDATA"))  # Convert to Path object
+        else:
+            self.appdata_path = Path(os.getenv("HOME")) # Assume linux
         print("AppData path: " + str(self.appdata_path))  # Print Save Dir
         
         self.file_path = self.appdata_path / "Chat" / "user.txt"  # Correct path creation
@@ -138,17 +191,34 @@ class ChatApp(QWidget):
 
         # ---------- New Chat System Setup ----------
         # Dictionary to store messages per chat (key: chat partner, value: list of (sender, message))
-        self.chats = {}      
+        self.chats: dict[public_key.PublicKey, ] = {}      
         # Currently selected chat partner (for messages sent by you)
-        self.current_chat = None  
+        self.current_chat = None
         
+        # INIT HT EUPDATE QUEUE FOR CHATS
+        # Create a timer that updates every 16ms (~60 FPS)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_frame)
+        self.timer.start(16)  # 16ms ≈ 60 FPS
+
         self.init_ui()
         #self.add_test_messages()  # Add some test messages to verify the functionality
         self.init_web_client() #  Set up the Web Client
         
+    def update_frame(self):
+        for sender, message in self.client_backend.message_queue:
+            self.msg_recieved(sender, message)
+        
+        self.client_backend.message_queue.clear()
+
     def init_web_client(self):
         print("Starting Web Client Connection...")
-        self.web_client = Client("192.168.176.160", 12345, on_message_received=self.msg_recieved)
+        #self.web_client = Client("192.168.176.160", 12345, on_message_received=self.msg_recieved)
+        # Init client_state here
+        self.client_backend = load_or_new_client(self.username, self.msg_recieved)
+        #init poller
+        self.poller_thread = WorkerThread(self.client_backend)
+        self.poller_thread.start_task()
 
     def load_username(self):
         """Loads the username from the user.txt JSON file."""
@@ -161,8 +231,20 @@ class ChatApp(QWidget):
             sys.exit()
 
         print("Found Username: " + self.username)
-        self.client_backend = new_client(self.username)
-    
+
+    def on_top_right_button_click(self):
+        if check_blocked(self.current_chat.as_base64_string()):
+            print("UNBLOCKING")
+            unblock(self.current_chat.as_base64_string())
+            self.top_right_button.setText("FREE✅")
+        else:
+            print("BLOCKING")
+            block(self.current_chat.as_base64_string())
+            self.top_right_button.setText("BLOCKED🚫")
+
+    def block_button_update(self):
+          self.top_right_button.setText("BLOCKED🚫" if check_blocked(self.current_chat) else "FREE✅")
+
     def init_ui(self):
         """Initializes the GUI components."""
         # -------------------- Apply Styling ----------------
@@ -235,11 +317,12 @@ class ChatApp(QWidget):
         self.new_chat_button.show()
 
         # Add test users
-        self.test_users = ["Bob", "Alice", "Martin"] # Simulating many users -> REMOVE IN PROD
-        for user in self.test_users:
-            user_button = QPushButton(user)
-            user_button.clicked.connect(lambda checked, u=user: self.on_user_selected(u))
-            self.contacts_layout.addWidget(user_button)
+        #self.test_users = ["Bob", "Alice", "Martin"] # Simulating many users -> REMOVE IN PROD
+        self.test_users = []
+        #for user in self.test_users:
+        #    user_button = QPushButton(user)
+        #    user_button.clicked.connect(lambda checked, u=user: self.on_user_selected(u))
+        #    self.contacts_layout.addWidget(user_button)
 
         # Add a stretch at the bottom to keep spacing consistent
         self.contacts_layout.addStretch(1)
@@ -279,6 +362,24 @@ class ChatApp(QWidget):
 
         self.layout.addLayout(chat_layout, stretch=5)
 
+        #----------------------BLOCKIN BUTTON ---------------------
+
+        # Create a top bar layout for the button
+        self.top_bar_layout = QHBoxLayout()
+
+        # Create the button
+        self.top_right_button = QPushButton("BLOCKED🚫" if check_blocked(self.current_chat) else "FREE✅", self)  # Settings or any function
+        self.top_right_button.setFixedSize(100, 30)  # Set size
+        self.top_right_button.clicked.connect(self.on_top_right_button_click)  # Connect to function
+
+        # Align the button to the right
+        self.top_bar_layout.addStretch(1)  # Push button to the right
+        self.top_bar_layout.addWidget(self.top_right_button)  # Add button to layout
+
+        # Add the top bar layout to the main layout
+        self.layout.insertLayout(2, self.top_bar_layout)  # Insert at the top
+
+
         # -------------------- BOTTOM INPUT BAR --------------------
         self.bottom_input_layout = QHBoxLayout()
         self.bottom_message_input = QLineEdit()
@@ -305,11 +406,12 @@ class ChatApp(QWidget):
         self.setLayout(self.layout)
 
         # Set default current chat to the first contact (if any)
+        #Init OpenKeyChatTuple
         if self.test_users:
             self.display_chat(self.test_users[0])
             self.current_chat = self.test_users[0]
 
-    def msg_recieved(self, client, message):
+    def msg_recieved(self, message, sender):
         """
         Called when a new message is received.
         Creates a new label in the chat message area.
@@ -318,21 +420,20 @@ class ChatApp(QWidget):
         """
         print(message)
         #sernder = ...
-        return
+        #return
         # Modify this to adapt to the new system of JSON Format 
         # For simplicity, the message will be displayed as "Sender: Message"
-        message_label = QLabel(f"{sender}: {message}")
-        self.message_container_layout.addWidget(message_label)
-        
-        # (Optional) If sender is not in your contacts, you could add a new button/label.
-        if sender not in self.test_users and sender != self.username:
-            print(f"New sender detected: {sender} (not in contacts)")
-            new_contact = QPushButton(sender)
-            new_contact.clicked.connect(lambda checked, u=sender: self.on_user_selected(u))
-            self.user_list_layout.addWidget(new_contact)
-            self.test_users.append(sender)
+        sender_name = self.client_backend.discovered_clients[sender]
 
-    def on_user_selected(self, user):
+        # (Optional) If sender is not in your contacts, you could add a new button/label.
+        if sender not in self.test_users and sender_name != self.username:
+            print(f"New sender detected: {sender_name} (not in contacts)")
+            self.add_new_chat(sender_name, None)
+
+        self.add_message_to_chat(sender, message, sender_name)
+        #self.display_chat(sender)
+
+    def on_user_selected(self, user: public_key.PublicKey):
         """
         Called when a user in the contacts list is clicked.
         Updates the current chat and displays its messages.
@@ -361,8 +462,10 @@ class ChatApp(QWidget):
         
         # Send message via web_client
         # IMPORTANT ------ Implement Encryption before sending
+        if not self.current_chat in self.client_backend.chats:
+            self.client_backend.send_shared_secret(self.current_chat)
         try:
-            self.web_client.send(text + "\n") # Need \n escape in order to be able to send message
+            self.client_backend.send_message(self.current_chat, text) # Need \n escape in order to be able to send message
             print("Message sent to web client")
         except Exception as e:
             print(f"CRITICAL: The message wasnt able to be sent: {e}")
@@ -389,7 +492,7 @@ class ChatApp(QWidget):
         if chat_user not in self.chats:
             self.chats[chat_user] = []
         self.chats[chat_user].append((sender, message))
-        if self.current_chat == chat_user:
+        if self.current_chat == None or self.current_chat == chat_user:
             self.add_message_label(sender, message)
     
     def add_message_label(self, sender, message):
@@ -491,17 +594,32 @@ class ChatApp(QWidget):
         Adds a new chat contact if a valid name is provided.
         The new chat button is inserted before the New Chat button so that it always remains last.
         """
+        found_users = []
+        for key in self.client_backend.discovered_clients.keys():
+            key_name = self.client_backend.discovered_clients[key]
+            if key_name == contact_name:
+                found_users.append(key)
+
+        
+                
         # Request Open Key From Buffer
-        if contact_name.strip() == "":
-            print("No name provided")
+        if len(found_users) == 0:
+            print("No users found")
             return
-        if contact_name in self.test_users:
+        if len(found_users) > 1:
+            print("There were multipe users with that name, Todo: let client select.")
+            return
+        
+        contact_key = found_users[0]
+        if contact_key in self.test_users:
             print("Chat with that contact already exists")
             return
+        
+        self.test_users.append(contact_key)
 
         # Remove stretch temporarily
         new_user_button = QPushButton(contact_name)
-        new_user_button.clicked.connect(lambda checked, u=contact_name: self.on_user_selected(u))
+        new_user_button.clicked.connect(lambda checked, u=contact_key: self.on_user_selected(u))
 
         # ✅ Remove the existing stretch before adding a new contact
         if self.contacts_layout.count() > 0:
@@ -514,7 +632,8 @@ class ChatApp(QWidget):
 
         # ✅ Re-add the stretch at the end to keep contacts aligned properly
         self.contacts_layout.addStretch(1)
-        dialog.accept()
+        if dialog:
+            dialog.accept()
 
     def open_file_dialog(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*);;Text Files (*.txt)")

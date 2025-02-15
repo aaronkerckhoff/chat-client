@@ -11,8 +11,8 @@ class ChatState:
         self.display_name = display_name,
         self.public_key = public_key,
 
-    def decrypt_verify_chat(self, message: bytes, decrypted_hash: bytes) -> str | None:
-        decrypted_message = crypto.aes_decrypt(self.symetric_key, message)
+    def decrypt_verify_chat(self, message: bytes, decrypted_hash: bytes, nonce: bytes) -> str | None:
+        decrypted_message = crypto.aes_decrypt(self.symetric_key, nonce, message, None)
         if decrypted_message == None:
             return None
         received_hash = crypto.get_sha256_hash(decrypted_message)
@@ -22,23 +22,25 @@ class ChatState:
 IP = '192.168.176.160'
 PORT = 12345
         
+
 class ClientState:
 
-    def __init__(self, pub_key: public_key.PublicKey, priv_key, display_name: str):
-        self.chats: dict[public_key.PublicKey, ChatState] = {},
+    def __init__(self, pub_key: public_key.PublicKey, priv_key, display_name: str, received_callback):
+        self.chats: dict[public_key.PublicKey, ChatState] = dict()
         self.discovered_clients = dict()
         self.public_key = pub_key
         self.private_key = priv_key
         self.client_socket = client_socket.ClientSocket(IP, PORT)
         self.display_name = display_name
-        
+        self.msg_recieved_callback = received_callback
+        self.message_queue = []
 
     
     def send_message(self, chat: public_key.PublicKey, message: str):
         message_bytes = message.encode("utf-8")
-        hash = crypto.hash(message_bytes)
-        encrypted = crypto.aes_encrypt(self.chats[chat].symetric_key, message_bytes)
-        message_packet = packet_creator.create_direct_message(chat, encrypted)
+        hash = crypto.get_sha256_hash(message_bytes)
+        (nonce, encrypted) = crypto.aes_encrypt(self.chats[chat].symetric_key, message_bytes, None)
+        message_packet = packet_creator.create_direct_message(chat.as_base64_string(), encrypted, base64.b64encode(hash).decode("utf-8"), self.public_key.as_base64_string(), nonce)
         self.client_socket.send(message_packet)
     
     def broadcast_self(self):
@@ -57,13 +59,16 @@ class ClientState:
         sym_key = crypto.rsa_decrypt(self.private_key, encrypted_shared_secret)
         if not shared_secret_signature.valid_for(sender, sym_key):
             return
-        self.chats[sender] = sym_key            
+        self.chats[sender] = ChatState(sym_key, self.discovered_clients[sender], sender)
+        #self.msg_recieved_callback("Chat was instanciated", sender)  
+        self.message_queue.append(("Chat was instanciated", sender))          
+        print("Received shared secret")
         pass
 
     def send_shared_secret(self, receiver: public_key.PublicKey):
         random_key = crypto.generate_aes_key()
         signed_key = signature.sign_with(self.private_key, random_key)
-        encrypted_key = crypto.rsa_encrypt(self.public_key.inner, random_key)
+        encrypted_key = crypto.rsa_encrypt(receiver.inner, random_key)
         message_pckt = packet_creator.create_exchange_message(
             base64.b64encode(encrypted_key).decode("utf-8"),
             self.public_key.as_base64_string(),
@@ -71,16 +76,26 @@ class ClientState:
             receiver.as_base64_string()
         )
         self.client_socket.send(message_pckt)
+        self.chats[receiver] = ChatState(random_key, self.discovered_clients[receiver], receiver)            
 
-    def received_message(self, sender: public_key.PublicKey, encrypted_message_bytes: bytes, decrypted_hash: bytes):
+
+    def received_message(self, sender: public_key.PublicKey, encrypted_message_bytes: bytes, decrypted_hash: bytes, nonce: bytes):
         """The client has received a message that is still encrypted.
         We need to check whether the decrypted message hash matches the decrypted hash, the other client might
         have been hacked otherwise :O
         
         Todo: We don't check yet whether the message has actually come from the pretended sender, enabeling people to send fake packets making this client think the other party has been hacked."""
+        print("Received message")
+
         if not sender in self.chats:
             return #We dont know them, maybe log it?
-        self.chats[sender].decrypt_verify_chat(encrypted_message_bytes, decrypted_hash)
+        return_msg = self.chats[sender].decrypt_verify_chat(encrypted_message_bytes, decrypted_hash, nonce)
+        
+        if return_msg:
+            #self.msg_recieved_callback(return_msg, sender)
+            self.message_queue.append((return_msg, sender))          
+
+    
     def received_healing(self, sender: public_key.PublicKey, encrypted_new_key: bytes, signature: signature.Signature):
         """The client received a healing message from the sender. 
         The encrypted_new_key has been asymetrically encrypted with the most current public key within the dm message context.
@@ -99,15 +114,16 @@ class ClientState:
         """Received a broadcast message where a connected client announces themselves. 
         Their name has been signed with the signature."""
         if not signature.valid_for(public_key, name.encode("utf-8")):
-            print("Sig invalid")
+            print("Sig invalid " + public_key.as_base64_string() + "\nSig:" + signature.to_base64())
             return
         self.discovered_clients[public_key] = name
     
 
 
-def new_client(display_name: str) -> ClientState:
-    crypto.generate_rsa_key_pair()
+def load_or_new_client(display_name: str, recieved_callback) -> ClientState:
+    if not crypto.keys_exist():
+        crypto.generate_rsa_key_pair()
     priv_key = crypto.load_private_key()
     pub_key = public_key.from_rsa(crypto.load_public_key())
-    client = ClientState(pub_key, priv_key, display_name)
+    client = ClientState(pub_key, priv_key, display_name, recieved_callback)
     return client

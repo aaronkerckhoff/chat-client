@@ -10,8 +10,12 @@ class ClientSocket:
 
     def receive_message(self):
         buffer = b''
+        self.sock.setblocking(False)
         while True:
-            data = self.sock.recv(4096)
+            try:
+                data = self.sock.recv(4096)
+            except BlockingIOError:
+                return None
             if not data:
                 # Connection closed
                 break
