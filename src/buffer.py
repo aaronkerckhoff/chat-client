@@ -46,9 +46,9 @@ time = 60
 def formatData(data):
     io_stream = io.BytesIO(data[0].encode("utf-8"))
     magic_number = io_stream.read(1)[0]
-    print(data[1:])
-    sdata = json.load(data[1:])
+    print(type(data[1:-1]))
 
+    sdata = json.loads(data[1:-1])
     return magic_number, sdata
 
 def runBuffer():
