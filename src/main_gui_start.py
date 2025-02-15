@@ -248,7 +248,7 @@ class ChatApp(QWidget):
     def block_button_update(self):
           if not self.current_chat:
               return
-          self.top_right_button.setText("BLOCKED🚫" if check_blocked(self.current_chat) else "FREE✅")
+          self.top_right_button.setText("BLOCKED🚫" if check_blocked(self.current_chat.as_base64_string()) else "FREE✅")
 
     def init_ui(self):
         """Initializes the GUI components."""
@@ -373,7 +373,8 @@ class ChatApp(QWidget):
         self.top_bar_layout = QHBoxLayout()
 
         # Create the button
-        self.top_right_button = QPushButton("BLOCKED🚫" if check_blocked(self.current_chat) else "FREE✅", self)  # Settings or any function
+        self.top_right_button = QPushButton(self)  # Settings or any function
+        self.block_button_update()
         self.top_right_button.setFixedSize(100, 30)  # Set size
         self.top_right_button.clicked.connect(self.on_top_right_button_click)  # Connect to function
 
