@@ -1,19 +1,12 @@
 from client_state import ClientState, load_or_new_client
 import packet_parser
+from PyQt6.QtWidgets import QApplication
+import chat_app as chat_app
+import sys
 import io
 
-client = load_or_new_client("Hello World, Im leah")
+app = QApplication(sys.argv)  # Initialize the application
+window = chat_app.ChatApp()            # Create the main chat window
 
-client.broadcast_self()
-
-
-
-def update(client: ClientState):
-    while True:
-        message = client.client_socket.receive_message()
-        message = io.BytesIO(message)
-        if not message:
-            break
-        packet_parser.parse_packet(message, client)
-
-update(client)
+window.show()                 # Show the GUI
+sys.exit(app.exec())          # Start the application event loop
