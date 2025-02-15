@@ -15,6 +15,7 @@ import threading
 import io
 import time
 
+from censor_bad_words import filter_new_message
 from blocking import check_blocked, block, unblock
 from client_state import ClientState, load_or_new_client, ChatState
 
@@ -497,6 +498,7 @@ class ChatApp(QWidget):
         """
         Stores a message for a given chat and displays it if that chat is active.
         """
+        message = filter_new_message(message)
         if chat_user not in self.chats:
             self.chats[chat_user] = []
         self.chats[chat_user].append((sender, message))
