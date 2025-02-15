@@ -425,8 +425,9 @@ class ChatApp(QWidget):
         if check_blocked(sender.as_base64_string()):
             print("BLOCKED PERSON SENT MESSAGE")
             return
-            print(message)
-            sender_name = self.client_backend.get_key_name(sender)
+        
+        print(message)
+        sender_name = self.client_backend.get_key_name(sender)
 
         # (Optional) If sender is not in your contacts, you could add a new button/label.
         if sender not in self.test_users and sender_name != self.username:
