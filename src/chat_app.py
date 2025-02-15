@@ -23,7 +23,7 @@ import user_config
 #-------------------- CLASSES --------------------
 #Define Login Popup here
 class LoginPopup(QDialog):
-    def __init__(self, save_file_path):
+    def __init__(self):
         """
         Init for Login Popup
         """
@@ -45,9 +45,6 @@ class LoginPopup(QDialog):
 
         # Button Click Event
         self.submit_button.clicked.connect(self.get_input)
-
-        # Make file_path persist
-        self.file_path = save_file_path
 
         # Try Loading Roboto Font
         # May not this life, because ths aint working
@@ -90,13 +87,13 @@ class LoginPopup(QDialog):
             sys.exit()
 
         print("Entered Username: ", username)
-        print("Saving UserName to File: " + self.file_path.__str__())
+        print("Saving UserName to config")
         
-        # Create and write to the file
-        with self.file_path.open("w", encoding="utf-8") as file:
-            file.write(f"{{\"username\":\"{username}\"}}")  #--------------- IMPORTANT --------------- Create Keys and format json
+        config = user_config.load_config()
 
-        print(f"File created at: {self.file_path}")
+        config["username"] = username
+
+        user_config.write_config(config)
         
         self.accept()  # Close the dialog on Name Enter
 
@@ -113,6 +110,7 @@ class WorkerThread(threading.Thread):
             self.task()
             if running_secs % 50 == 0:
                 self.client.broadcast_self()
+                self.client.write_to_save()
             running_secs += 1
             time.sleep(1)  
 
@@ -132,17 +130,18 @@ class WorkerThread(threading.Thread):
     def task(self):
         """The hardcoded task the thread will execute"""
         #print("Running task")
-        message = self.client.client_socket.receive_message()
-        if not message:
-            return
-        message = io.BytesIO(message)
-        if not message:
-            print("Connection closed")
-            return
-        
-        print(f"Message Recieved: {message}")
+        while True:
+            message = self.client.client_socket.receive_message()
+            if not message:
+                return
+            message = io.BytesIO(message)
+            if not message:
+                print("Connection closed")
+                return
+            
+            print(f"Message Recieved: {message}")
 
-        packet_parser.parse_packet(message, self.client)
+            packet_parser.parse_packet(message, self.client)
 
 class EventFilter(QObject):
     def __init__(self, main):
@@ -181,8 +180,7 @@ class ChatApp(QWidget):
         self.load_or_create_username()
 
         # ---------- New Chat System Setup ----------
-        # Dictionary to store messages per chat (key: chat partner, value: list of (sender, message))
-        self.chats: dict[public_key.PublicKey, ] = {}      
+
         # Currently selected chat partner (for messages sent by you)
         self.current_chat = None
         
@@ -195,7 +193,12 @@ class ChatApp(QWidget):
         self.init_ui()
         #self.add_test_messages()  # Add some test messages to verify the functionality
         self.init_web_client() #  Set up the Web Client
+
         
+    def closeEvent(self, a0):
+        self.client_backend.write_to_save()
+        return super().closeEvent(a0)
+
     def update_frame(self):
         for sender, message in self.client_backend.message_queue:
             self.msg_recieved(sender, message)
@@ -207,6 +210,9 @@ class ChatApp(QWidget):
         #self.web_client = Client("192.168.176.160", 12345, on_message_received=self.msg_recieved)
         # Init client_state here
         self.client_backend = load_or_new_client(self.username, self.msg_recieved)
+
+        self.recreate_chat_buttons()
+
         #init poller
         self.poller_thread = WorkerThread(self.client_backend)
         self.poller_thread.start_task()
@@ -220,8 +226,11 @@ class ChatApp(QWidget):
             self.username = config["username"]
         else:
             # Prompt user to enter new username.
-            new_user_popup = LoginPopup(self.chat_client_save_path)
+            new_user_popup = LoginPopup()
             new_user_popup.exec()
+            # This is a very bad hack.
+            config = user_config.load_config()
+            self.username = config["username"]
 
         print("Found Username: " + self.username)
 
@@ -413,6 +422,8 @@ class ChatApp(QWidget):
             self.display_chat(self.test_users[0])
             self.current_chat = self.test_users[0]
 
+
+
     def msg_recieved(self, message, sender):
         """
         Called when a new message is received.
@@ -443,8 +454,7 @@ class ChatApp(QWidget):
         print(f"Selected chat with: {user}")
         self.current_chat = user
         self.block_button_update()
-        username = self.client_backend.get_key_name(user)
-        self.display_chat(username)
+        self.display_chat(user)
     
     
     def bottom_send_message(self):
@@ -494,9 +504,6 @@ class ChatApp(QWidget):
         Stores a message for a given chat and displays it if that chat is active.
         """
         message = filter_new_message(message)
-        if chat_user not in self.chats:
-            self.chats[chat_user] = []
-        self.chats[chat_user].append((sender, message))
         if self.current_chat == None or self.current_chat == chat_user:
             self.add_message_label(sender, message)
     
@@ -522,7 +529,7 @@ class ChatApp(QWidget):
 
 
     
-    def display_chat(self, chat_user: str):
+    def display_chat(self, chat_user: public_key.PublicKey):
         """
         Clears and displays all messages for the specified chat, ensuring they appear top to bottom.
         """
@@ -535,12 +542,20 @@ class ChatApp(QWidget):
         # Ensure messages appear top to bottom
         self.message_container_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
+        contact_name = self.client_backend.get_key_name(chat_user)
         # Add messages with fixed spacing
-        for sender, message in self.chats.get(chat_user, []):
-            self.add_message_label(sender, message)
+        if chat_user in self.client_backend.chats:
+            for message in self.client_backend.chats[chat_user].messages:
+                if message.sent_by_client:
+                    sender_name = self.username
+                else:
+                    sender_name = contact_name
+
+                self.add_message_label(sender_name, message.message)
 
         # Update the chat title
-        self.message_area_label.setText(f"Chat Messages - {chat_user}")
+
+        self.message_area_label.setText(f"Chat Messages - {contact_name}")
 
 
 
@@ -594,6 +609,21 @@ class ChatApp(QWidget):
         submit_button.clicked.connect(lambda: self.add_new_chat(input_field.text(), dialog))
         dialog.exec()
     
+
+    def recreate_chat_buttons(self):
+        # Clear the contacts list.
+        while self.contacts_layout.count():
+            item = self.contacts_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+        
+        # Add chat buttons
+
+        self.add_chat_button_widget([(self.client_backend.get_key_name(key), key) for key in self.client_backend.chats.keys()])
+
+        
+
     def add_new_chat(self, contact_name, dialog):
         """
         Adds a new chat contact if a valid name is provided.
@@ -612,7 +642,7 @@ class ChatApp(QWidget):
             print("No users found")
             return
         if len(found_users) > 1:
-            print("There were multipe users with that name, Todo: let client select.")
+            print("There were multiple users with that name, Todo: let client select.")
             return
         
         contact_key = found_users[0]
@@ -622,9 +652,15 @@ class ChatApp(QWidget):
         
         self.test_users.append(contact_key)
 
-        # Remove stretch temporarily
-        new_user_button = QPushButton(contact_name)
-        new_user_button.clicked.connect(lambda checked, u=contact_key: self.on_user_selected(u))
+        self.add_chat_button_widget([(contact_name, contact_key)])
+
+        if dialog:
+            dialog.accept()
+
+
+
+    def add_chat_button_widget(self, infos: list[tuple[str, public_key.PublicKey]]):
+        # So stretch apparently is the thing that fills the contact list from the top of the chats to the bottom
 
         # ✅ Remove the existing stretch before adding a new contact
         if self.contacts_layout.count() > 0:
@@ -632,13 +668,14 @@ class ChatApp(QWidget):
             if item and isinstance(item, QLayoutItem):  # Check if it's the stretch
                 self.contacts_layout.removeItem(item)
 
-        # ✅ Add new contact button at the bottom (normal behavior)
-        self.contacts_layout.addWidget(new_user_button)
+        for contact_name, contact_key in infos:
+            new_user_button = QPushButton(contact_name)
+            new_user_button.clicked.connect(lambda checked, u=contact_key: self.on_user_selected(u))
+            self.contacts_layout.addWidget(new_user_button)
 
         # ✅ Re-add the stretch at the end to keep contacts aligned properly
         self.contacts_layout.addStretch(1)
-        if dialog:
-            dialog.accept()
+
 
     def open_file_dialog(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*);;Text Files (*.txt)")
