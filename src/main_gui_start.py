@@ -423,23 +423,20 @@ class ChatApp(QWidget):
         Also checks if the sender is already in the contacts sidebar;
         if not, you could add it.
         """
-        if not check_blocked(sender.as_base64_string()):
-            print(message)
-            #sernder = ...
-            #return
-            # Modify this to adapt to the new system of JSON Format 
-            # For simplicity, the message will be displayed as "Sender: Message"
-            sender_name = self.client_backend.discovered_clients[sender]
-
-            # (Optional) If sender is not in your contacts, you could add a new button/label.
-            if sender not in self.test_users and sender_name != self.username:
-                print(f"New sender detected: {sender_name} (not in contacts)")
-                self.add_new_chat(sender_name, None)
-
-            self.add_message_to_chat(sender, message, sender_name)
-            #self.display_chat(sender)
-        else:
+        if check_blocked(sender.as_base64_string()):
             print("BLOCKED PERSON SENT MESSAGE")
+            return
+        
+        print(message)
+        sender_name = self.client_backend.get_key_name(sender)
+
+        # (Optional) If sender is not in your contacts, you could add a new button/label.
+        if sender not in self.test_users and sender_name != self.username:
+            print(f"New sender detected: {sender_name} (not in contacts)")
+            self.add_new_chat(sender_name, None)
+
+        self.add_message_to_chat(sender, message, sender_name)
+        #self.display_chat(sender)
 
     def on_user_selected(self, user: public_key.PublicKey):
         """
@@ -449,7 +446,8 @@ class ChatApp(QWidget):
         print(f"Selected chat with: {user}")
         self.current_chat = user
         self.block_button_update()
-        self.display_chat(user)
+        username = self.client_backend.get_key_name(user)
+        self.display_chat(username)
     
     
     def bottom_send_message(self):
@@ -516,7 +514,7 @@ class ChatApp(QWidget):
         label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         # Set a fixed height (adjust as needed)
-        label.setFixedHeight(10)  
+        label.setFixedHeight(15)  
 
         # Add the message to the layout
         self.message_container_layout.addWidget(label)
@@ -527,7 +525,7 @@ class ChatApp(QWidget):
 
 
     
-    def display_chat(self, chat_user):
+    def display_chat(self, chat_user: str):
         """
         Clears and displays all messages for the specified chat, ensuring they appear top to bottom.
         """
