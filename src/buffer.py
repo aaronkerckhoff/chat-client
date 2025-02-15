@@ -1,6 +1,8 @@
 import socket
 from queue import Queue
 from time import sleep
+import json
+import io
 
 class Buffer:
     def __init__(self, ip: str, port: int) -> None:
@@ -36,9 +38,11 @@ PORT = 12345
 time = 60*5
 
 def formatData(data):
-    
+    io_stream = io.BytesIO(data[0])
+    sdata = json.loads(data[1:])
+    magic_number = io_stream.read(1)[0]
 
-    return data
+    return magic_number, sdata
 
 def runBuffer():
     buffer = Buffer(IP, PORT)
@@ -46,7 +50,8 @@ def runBuffer():
     for i in range(time):
         data = buffer.listen()
         print(f"Received from server: {data}", end="")
-        buffer.enqueue('t', data)
+        mn, sd = formatData(data)
+        print(mn, sd)
         sleep(1)
 
     buffer.socket.close()
