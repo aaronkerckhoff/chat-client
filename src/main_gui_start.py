@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog, QScrollArea, QSizePolicy, QLayout, QLayoutItem
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog, QScrollArea, QSizePolicy, QLayout, QLayoutItem, QSpacerItem
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from pathlib import Path
@@ -536,6 +536,8 @@ class ChatApp(QWidget):
 
         # Update the chat title
         self.message_area_label.setText(f"Chat Messages - {chat_user}")
+
+
 
     
     def receive_message(self, message, sender):
