@@ -4,26 +4,65 @@ from . import crypto
 from . import client_socket
 from . import packet_creator
 import base64
+import user_config
+import json
+import copy
+
+class Message:
+    def __init__(self, message: str, sent_by_self: bool):
+        self.message = message
+        self.sent_by_client = sent_by_self
+    def __json__(self):
+        return {"message": self.message, "sent_by_client": self.sent_by_client}
+
+def __message_from_json__(json: dict) -> Message:
+        message = json["message"]
+        sent_by_client = json["sent_by_client"]
+        return Message(message, sent_by_client)
 
 class ChatState:
-    def __init__(self, symetric_key: bytes, display_name: str, public_key: public_key.PublicKey):
-        self.symetric_key = symetric_key
-        self.display_name = display_name,
-        self.public_key = public_key,
+    def __init__(self, symmetric_key: bytes, display_name: str, public_key: public_key.PublicKey, messages: list[Message] = None):
+        self.symmetric_key = symmetric_key
+        self.display_name = display_name
+        self.public_key = public_key
+        if messages:
+            self.messages = messages
+        else:
+            self.messages = []
+
+    def __json__(self):
+        return {"symmetric_key": base64.b64encode(self.symmetric_key).decode("utf-8"), "display_name": self.display_name, "public_key": self.public_key.as_base64_string(), "messages": [message.__json__() for message in self.messages]}
+
+
 
     def decrypt_verify_chat(self, message: bytes, decrypted_hash: bytes, nonce: bytes) -> str | None:
-        decrypted_message = crypto.aes_decrypt(self.symetric_key, nonce, message, None)
+        decrypted_message = crypto.aes_decrypt(self.symmetric_key, nonce, message, None)
         if decrypted_message == None:
             return None
         received_hash = crypto.get_sha256_hash(decrypted_message)
         if received_hash == decrypted_hash:
-            return decrypted_message.decode("utf-8")
+            plain_message = decrypted_message.decode("utf-8")
+            self.messages.append(Message(plain_message, False))
+            return plain_message
+
+def __state_from_json__(dict: dict) -> ChatState:
+    symmetric_key = base64.b64decode(dict["symmetric_key"])
+    display_name = dict["display_name"]
+    pub_key = public_key.from_base64_string(dict["public_key"])
+    messages = [__message_from_json__(message) for message in dict["messages"]]
+    return ChatState(symmetric_key, display_name, pub_key, messages)
+
 
 IP = '192.168.178.76'
 PORT = 12345
         
 
 class ClientState:
+
+    def write_to_save(self):
+        config = user_config.load_config()
+        config["chats"] = [chat.__json__() for chat in self.chats.values()]
+        user_config.write_config(config)
 
     def __init__(self, pub_key: public_key.PublicKey, priv_key, display_name: str, received_callback):
         self.chats: dict[public_key.PublicKey, ChatState] = dict()
@@ -32,16 +71,19 @@ class ClientState:
         self.private_key = priv_key
         self.client_socket = client_socket.ClientSocket(IP, PORT)
         self.display_name = display_name
-        self.msg_recieved_callback = received_callback
+        self.msg_received_callback = received_callback
         self.message_queue = []
 
     
     def send_message(self, chat: public_key.PublicKey, message: str):
+        chat_state = self.chats[chat]
+        chat_state.messages.append(Message(message, True))
         message_bytes = message.encode("utf-8")
         hash = crypto.get_sha256_hash(message_bytes)
-        (nonce, encrypted) = crypto.aes_encrypt(self.chats[chat].symetric_key, message_bytes, None)
+        (nonce, encrypted) = crypto.aes_encrypt(chat_state.symmetric_key, message_bytes, None)
         message_packet = packet_creator.create_direct_message(chat.as_base64_string(), encrypted, base64.b64encode(hash).decode("utf-8"), self.public_key.as_base64_string(), nonce)
         self.client_socket.send(message_packet)
+        
     
     def broadcast_self(self):
         signed_name = signature.sign_with(self.private_key, self.display_name.encode("utf-8"))
@@ -60,8 +102,7 @@ class ClientState:
         if not shared_secret_signature.valid_for(sender, sym_key):
             return
         self.chats[sender] = ChatState(sym_key, self.get_key_name(sender), sender)
-        #self.msg_recieved_callback("Chat was instanciated", sender)  
-        self.message_queue.append(("Chat was instanciated", sender))          
+        self.message_queue.append(("Chat was instantiated", sender))          
         print("Received shared secret")
         pass
 
@@ -80,14 +121,14 @@ class ClientState:
 
     def get_key_name(self, key: public_key.PublicKey) -> str:
         formatted_key = key.as_base64_string()
-        formatted_key = formatted_key[70:76] + "..." + formatted_key[-76:-70]
+        formatted_key = formatted_key[70:76] + "..." + formatted_key[-76:-70] # The first few bits of the public key are always the same, so we'll include some more random bits
 
         if not key in self.discovered_clients:
             username = "Unknown"
         else:
             username = self.discovered_clients[key]
 
-        return username + "(" + formatted_key + ")"
+        return username + " (" + formatted_key + ")"
 
 
     def received_message(self, sender: public_key.PublicKey, encrypted_message_bytes: bytes, decrypted_hash: bytes, nonce: bytes):
@@ -139,4 +180,13 @@ def load_or_new_client(display_name: str, recieved_callback) -> ClientState:
     priv_key = crypto.load_private_key()
     pub_key = public_key.from_rsa(crypto.load_public_key())
     client = ClientState(pub_key, priv_key, display_name, recieved_callback)
+
+    config = user_config.load_config()
+
+    if "chats" in config:
+        for chat in config["chats"]:
+            chat_state = __state_from_json__(chat)
+            client.chats[chat_state.public_key] = chat_state
+            client.discovered_clients[chat_state.public_key] = chat_state.display_name
+
     return client
