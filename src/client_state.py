@@ -3,8 +3,8 @@ from . import signature
 from . import crypto
 from . import client_socket
 from . import packet_creator
+from . import user_config
 import base64
-import user_config
 import json
 import copy
 
@@ -31,7 +31,7 @@ class ChatState:
             self.messages = []
 
     def __json__(self):
-        return {"symmetric_key": base64.b64encode(self.symmetric_key).decode("utf-8"), "display_name": self.display_name, "public_key": self.public_key.as_base64_string(), "messages": [message.__json__() for message in self.messages]}
+        return {"encryption": "symmetric", "symmetric_key": base64.b64encode(self.symmetric_key).decode("utf-8"), "display_name": self.display_name, "public_key": self.public_key.as_base64_string(), "messages": [message.__json__() for message in self.messages]}
 
 
 
@@ -46,6 +46,10 @@ class ChatState:
             return plain_message
 
 def __state_from_json__(dict: dict) -> ChatState:
+    encryption = dict["encryption"]
+    if encryption != "symmetric":
+        print("Error: No support for pre/post compromise encryption.")
+        return
     symmetric_key = base64.b64decode(dict["symmetric_key"])
     display_name = dict["display_name"]
     pub_key = public_key.from_base64_string(dict["public_key"])
@@ -53,7 +57,7 @@ def __state_from_json__(dict: dict) -> ChatState:
     return ChatState(symmetric_key, display_name, pub_key, messages)
 
 
-IP = '192.168.178.76'
+IP = '87.106.163.101'
 PORT = 12345
         
 
@@ -169,6 +173,7 @@ class ClientState:
             print("Sig invalid " + public_key.as_base64_string() + "\nSig:" + signature.to_base64())
             return
         self.discovered_clients[public_key] = name
+        print("Discovered: " + name)
         if public_key in self.chats:
             self.chats[public_key].display_name = name
     
