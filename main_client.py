@@ -1,6 +1,6 @@
-from . client_state import ClientState, load_or_new_client
-from . import packet_parser
-from . import chat_app
+from src.client_state import ClientState, load_or_new_client
+from src import packet_parser
+from src import chat_app
 from PyQt6.QtWidgets import QApplication
 import sys
 import io
