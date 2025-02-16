@@ -1,8 +1,8 @@
-import public_key
-import signature
-import crypto
-import client_socket
-import packet_creator
+from . import public_key
+from . import signature
+from . import crypto
+from . import client_socket
+from . import packet_creator
 import base64
 
 class ChatState:

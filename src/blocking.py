@@ -1,7 +1,7 @@
 import os
 import json
 from pathlib import Path
-import user_config
+from . import user_config
 
 def load_blocked_config() -> dict:
     """Loads the config, ensuring the blocked key is set up if not present"""

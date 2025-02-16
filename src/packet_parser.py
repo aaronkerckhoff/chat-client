@@ -1,10 +1,10 @@
 import io
 import json
-import signature
-import public_key
+from . import signature
+from . import public_key
 import base64
-from client_state import ClientState
-from protocol_ver import current_protocol_version
+from .client_state import ClientState
+from .protocol_ver import current_protocol_version
 class PubKey:
     def __init__(self, b64_str: str):
         pass

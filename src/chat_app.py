@@ -4,9 +4,6 @@ from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from pathlib import Path
 from web_client.client import Client
 
-import packet_parser
-import public_key
-import packet_creator
 import sys
 import os
 import json
@@ -15,10 +12,14 @@ import threading
 import io
 import time
 
-from censor_bad_words import filter_new_message
-from blocking import check_blocked, block, unblock
-from client_state import ClientState, load_or_new_client, ChatState
-import user_config
+from . import packet_parser
+from . import public_key
+from . import packet_creator
+
+from . censor_bad_words import filter_new_message
+from . blocking import check_blocked, block, unblock
+from . client_state import ClientState, load_or_new_client, ChatState
+from . import user_config
 
 #-------------------- CLASSES --------------------
 #Define Login Popup here
