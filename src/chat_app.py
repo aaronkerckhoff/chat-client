@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog, QScrollArea, QSizePolicy, QLayout, QLayoutItem, QSpacerItem
-from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QSystemTrayIcon, QApplication, QWidget, QPushButton, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog, QScrollArea, QSizePolicy, QLayout, QLayoutItem, QSpacerItem
+from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from pathlib import Path
 from web_client.client import Client
@@ -413,6 +413,13 @@ class ChatApp(QWidget):
         self.layout.addStretch(1)  # Pushes input field down
         self.layout.addLayout(self.bottom_input_layout)
 
+        # Tray for toast notifications
+        icon = QIcon()
+        self.tray = QSystemTrayIcon(icon)
+        self.tray.setObjectName("Chat Client")
+        self.tray.setVisible(True)
+        self.tray.show() 
+
         # Set the final layout
         self.setLayout(self.layout)
 
@@ -506,6 +513,11 @@ class ChatApp(QWidget):
         message = filter_new_message(message)
         if self.current_chat == None or self.current_chat == chat_user:
             self.add_message_label(sender, message)
+        else:
+            self.send_toast_notification(sender + " sent a message")
+
+    def send_toast_notification(self, text):
+        self.tray.showMessage("Chat Client", text, QSystemTrayIcon.MessageIcon.Information, 5000)
     
     def add_message_label(self, sender, message):
         """
