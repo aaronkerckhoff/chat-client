@@ -1,13 +1,26 @@
 import socket
+import time
 
 class ClientSocket:
+
+    def spam_connect(self, ip, port):
+        while True:
+            try:
+                self.sock.connect((ip, port))
+                break
+            except:
+                print("Connecting to server failed, retrying in 5")
+                time.sleep(5)
+
     def __init__(self, ip, port):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((ip, port))
+        self.spam_connect(ip, port)
         self.queued_messages = []
         print("connected!")
     def send(self, data: bytes):
         self.sock.sendall(data)
+
+
 
     def receive_message(self):
         if len(self.queued_messages) > 0:
