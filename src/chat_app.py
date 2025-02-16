@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel,
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from pathlib import Path
-from web_client.client import Client
+#from web_client.client import Client
 
 import sys
 import os
