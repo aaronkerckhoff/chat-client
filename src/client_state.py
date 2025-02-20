@@ -87,6 +87,11 @@ class ClientState:
         (nonce, encrypted) = crypto.aes_encrypt(chat_state.symmetric_key, message_bytes, None)
         message_packet = packet_creator.create_direct_message(chat.as_base64_string(), encrypted, base64.b64encode(hash).decode("utf-8"), self.public_key.as_base64_string(), nonce)
         self.client_socket.send(message_packet)
+
+    def query_name(self, name: str):
+        wantsname_packet = packet_creator.create_wants_name_message(name)
+        self.client_socket.send(wantsname_packet)
+
         
     
     def broadcast_self(self):
@@ -158,10 +163,12 @@ class ClientState:
         """
         raise NotImplementedError()
         pass
-    def other_wants(self, requested: public_key.PublicKey):
+    def other_wants(self, requested: str):
         """A client on the network requested that buffer servers send the most recent messages to the requested receiver.
         This function can be ignored by non-buffer clients"""
-        pass
+        #We'll implement it anyways and rebroadcast ourselves if the query matches our name
+        if requested in self.display_name:
+            self.broadcast_self()
     def other_wants_name(self, name_query: str):
         """A client on the network requested that buffer servers resend broadcast/exists messages of every user that matches a certain name query
         This function can be ignored by non-buffer clients"""
