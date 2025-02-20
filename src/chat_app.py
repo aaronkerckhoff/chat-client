@@ -600,14 +600,26 @@ class ChatApp(QWidget):
         label = QLabel("Enter contact's name:")
         input_field = QLineEdit()
         submit_button = QPushButton("Create Chat")
+        try_fetch_button = QPushButton("Try fetch keys")
+        try_fetch_button.setToolTip("Tries to query the public key associated with this name from buffer servers if any are available.")
         
         layout = QVBoxLayout()
         layout.addWidget(label)
         layout.addWidget(input_field)
-        layout.addWidget(submit_button)
+        
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(submit_button)
+        button_layout.addWidget(try_fetch_button)
+
+        layout.addLayout(button_layout)
+
         dialog.setLayout(layout)
         
         submit_button.clicked.connect(lambda: self.add_new_chat(input_field.text(), dialog))
+        try_fetch_button.clicked.connect(lambda: 
+                                         self.client_backend.query_name(input_field.text())
+                                         # Todo: "Loading" animation
+                                         )
         dialog.exec()
     
 
