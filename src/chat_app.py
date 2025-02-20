@@ -2,11 +2,8 @@ from PyQt6.QtWidgets import QSystemTrayIcon, QApplication, QWidget, QPushButton,
 from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from pathlib import Path
-from web_client.client import Client
+#from web_client.client import Client
 
-import packet_parser
-import public_key
-import packet_creator
 import sys
 import os
 import json
@@ -15,10 +12,14 @@ import threading
 import io
 import time
 
-from censor_bad_words import filter_new_message
-from blocking import check_blocked, block, unblock
-from client_state import ClientState, load_or_new_client, ChatState
-import user_config
+from . import packet_parser
+from . import public_key
+from . import packet_creator
+
+from . censor_bad_words import filter_new_message
+from . blocking import check_blocked, block, unblock
+from . client_state import ClientState, load_or_new_client, ChatState
+from . import user_config
 
 #-------------------- CLASSES --------------------
 #Define Login Popup here
@@ -611,14 +612,26 @@ class ChatApp(QWidget):
         label = QLabel("Enter contact's name:")
         input_field = QLineEdit()
         submit_button = QPushButton("Create Chat")
+        try_fetch_button = QPushButton("Try fetch keys")
+        try_fetch_button.setToolTip("Tries to query the public key associated with this name from buffer servers if any are available.")
         
         layout = QVBoxLayout()
         layout.addWidget(label)
         layout.addWidget(input_field)
-        layout.addWidget(submit_button)
+        
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(submit_button)
+        button_layout.addWidget(try_fetch_button)
+
+        layout.addLayout(button_layout)
+
         dialog.setLayout(layout)
         
         submit_button.clicked.connect(lambda: self.add_new_chat(input_field.text(), dialog))
+        try_fetch_button.clicked.connect(lambda: 
+                                         self.client_backend.query_name(input_field.text())
+                                         # Todo: "Loading" animation
+                                         )
         dialog.exec()
     
 

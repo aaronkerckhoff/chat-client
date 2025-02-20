@@ -1,5 +1,5 @@
-import public_key
-import crypto
+from . import public_key
+from . import crypto
 import base64
 class Signature:
     def __init__(self, sig_bytes):

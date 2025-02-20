@@ -1,6 +1,6 @@
 import io
-import packet_parser
-import client_state
+from . import packet_parser
+from . import client_state
 
 def update(client: client_state.ClientState):
     message = client.client_socket.receive_message()

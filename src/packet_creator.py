@@ -1,8 +1,8 @@
-from protocol_ver import current_protocol_version
+from .protocol_ver import current_protocol_version
 import io
 import json
 import base64
-import public_key
+from . import public_key
 
 
 def create_head() -> io.BytesIO:

@@ -1,10 +1,10 @@
 import io
 import json
-import signature
-import public_key
+from . import signature
+from . import public_key
 import base64
-from client_state import ClientState
-from protocol_ver import current_protocol_version
+from .client_state import ClientState
+from .protocol_ver import current_protocol_version
 class PubKey:
     def __init__(self, b64_str: str):
         pass
@@ -50,7 +50,7 @@ def execute_broadcast_message(dic: dict, client: ClientState):
             requested = public_key.from_base64_string(dic["public_key"])
             client.other_wants(requested)
         case "WANTSNAME":
-            requested = public_key.from_base64_string(dic["name"])
+            requested = dic["name"]
             client.other_wants(requested)
 
 def execute_directed_message(dic: dict, client: ClientState):

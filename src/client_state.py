@@ -1,10 +1,10 @@
-import public_key
-import signature
-import crypto
-import client_socket
-import packet_creator
+from . import public_key
+from . import signature
+from . import crypto
+from . import client_socket
+from . import packet_creator
+from . import user_config
 import base64
-import user_config
 import json
 import copy
 
@@ -31,7 +31,7 @@ class ChatState:
             self.messages = []
 
     def __json__(self):
-        return {"symmetric_key": base64.b64encode(self.symmetric_key).decode("utf-8"), "display_name": self.display_name, "public_key": self.public_key.as_base64_string(), "messages": [message.__json__() for message in self.messages]}
+        return {"encryption": "symmetric", "symmetric_key": base64.b64encode(self.symmetric_key).decode("utf-8"), "display_name": self.display_name, "public_key": self.public_key.as_base64_string(), "messages": [message.__json__() for message in self.messages]}
 
 
 
@@ -46,6 +46,10 @@ class ChatState:
             return plain_message
 
 def __state_from_json__(dict: dict) -> ChatState:
+    encryption = dict["encryption"]
+    if encryption != "symmetric":
+        print("Error: No support for pre/post compromise encryption.")
+        return
     symmetric_key = base64.b64decode(dict["symmetric_key"])
     display_name = dict["display_name"]
     pub_key = public_key.from_base64_string(dict["public_key"])
@@ -53,7 +57,7 @@ def __state_from_json__(dict: dict) -> ChatState:
     return ChatState(symmetric_key, display_name, pub_key, messages)
 
 
-IP = '192.168.178.76'
+IP = '87.106.163.101'
 PORT = 12345
         
 
@@ -83,6 +87,11 @@ class ClientState:
         (nonce, encrypted) = crypto.aes_encrypt(chat_state.symmetric_key, message_bytes, None)
         message_packet = packet_creator.create_direct_message(chat.as_base64_string(), encrypted, base64.b64encode(hash).decode("utf-8"), self.public_key.as_base64_string(), nonce)
         self.client_socket.send(message_packet)
+
+    def query_name(self, name: str):
+        wantsname_packet = packet_creator.create_wants_name_message(name)
+        self.client_socket.send(wantsname_packet)
+
         
     
     def broadcast_self(self):
@@ -154,10 +163,12 @@ class ClientState:
         """
         raise NotImplementedError()
         pass
-    def other_wants(self, requested: public_key.PublicKey):
+    def other_wants(self, requested: str):
         """A client on the network requested that buffer servers send the most recent messages to the requested receiver.
         This function can be ignored by non-buffer clients"""
-        pass
+        #We'll implement it anyways and rebroadcast ourselves if the query matches our name
+        if requested in self.display_name:
+            self.broadcast_self()
     def other_wants_name(self, name_query: str):
         """A client on the network requested that buffer servers resend broadcast/exists messages of every user that matches a certain name query
         This function can be ignored by non-buffer clients"""
@@ -169,6 +180,7 @@ class ClientState:
             print("Sig invalid " + public_key.as_base64_string() + "\nSig:" + signature.to_base64())
             return
         self.discovered_clients[public_key] = name
+        print("Discovered: " + name)
         if public_key in self.chats:
             self.chats[public_key].display_name = name
     

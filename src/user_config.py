@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 import os
 
-config_version = 1
+config_version = 2
 
 def load_config(path: Path = None) -> dict:
     """Tries to load the current save file from disk. If it can't load from disk, it'll create a new save object"""
